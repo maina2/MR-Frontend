@@ -2,19 +2,21 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 
 import { MainLayout } from './layouts/MainLayout'
-import { Dashboard } from './pages/Dashboard'
-import { Orders } from './pages/Orders'
-import { Deliveries } from './pages/Deliveries'
-import { Payments } from './pages/Payments'
-import { Customers } from './pages/Customers'
-import { Reports } from './pages/Reports'
-import { Settings } from './pages/Settings'
-import { NewOrder } from './pages/NewOrder'
-import { NotFound } from './pages/NotFound'
+import  Dashboard  from './pages/Dashboard'
+import Orders  from './pages/Orders/Index'
+import Deliveries  from './pages/Deliveries'
+import Payments  from './pages/Payments'
+import  Customers  from './pages/Customers'
+import  Reports  from './pages/Reports'
+import  Settings  from './pages/Settings'
+import  NewOrder  from './pages/Orders/NewOrder'
+import  NotFound  from './pages/NotFound'
 
 function App() {
   return (
     <BrowserRouter>
+    <AnimatePresence mode="wait">
+
       <Routes>
         {/* Main Layout with sidebar and navbar */}
         <Route path="/" element={<MainLayout />}>
@@ -35,6 +37,8 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
+      </AnimatePresence>
+
     </BrowserRouter>
   )
 }
