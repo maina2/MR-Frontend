@@ -9,25 +9,29 @@ export const MainLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
   return (
-    <div className="flex h-screen flex-col bg-[#F3F4F6]">
-      {/* Top Navbar (always visible) */}
+    <div className="min-h-screen bg-gray-50">
+      {/* Top Navbar */}
       <Navbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
       
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar (desktop only) */}
-        <Sidebar isOpen={sidebarOpen} />
+      {/* Sidebar */}
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        onToggle={() => setSidebarOpen(!sidebarOpen)} 
+      />
+      
+      {/* Main Content Container */}
+      <div className={`transition-all duration-300 ${
+        sidebarOpen ? 'md:ml-64' : 'md:ml-16'
+      }`}>
+        {/* Main Content */}
+        <main className="min-h-[calc(100vh-56px-64px)] pt-6 pb-6 px-6 md:pb-16">
+          <div className="max-w-7xl mx-auto">
+            <Outlet />
+          </div>
+        </main>
         
-        <div className="flex-1 flex flex-col">
-          {/* Main Content Area */}
-          <main className={`flex-1 overflow-y-auto p-6 pb-24 md:pb-6 transition-all duration-300 ${sidebarOpen ? 'md:ml-64' : 'md:ml-16'}`}>
-            <div className="mx-auto max-w-7xl">
-              <Outlet />
-            </div>
-          </main>
-          
-          {/* Footer (desktop only) */}
-          <Footer />
-        </div>
+        {/* Footer - Now properly positioned */}
+        <Footer />
       </div>
       
       {/* Mobile Bottom Navigation */}

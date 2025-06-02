@@ -1,56 +1,46 @@
-import { FiHome, FiPackage, FiPlus, FiTruck, FiPieChart } from 'react-icons/fi'
-import { Link, useLocation } from 'react-router-dom'
+import { FiHome, FiPackage, FiTruck, FiDollarSign, FiUsers } from 'react-icons/fi'
+import { NavLink } from 'react-router-dom'
+
+const navItems = [
+  { to: '/', icon: FiHome, label: 'Home' },
+  { to: '/orders', icon: FiPackage, label: 'Orders' },
+  { to: '/deliveries', icon: FiTruck, label: 'Delivery' },
+  { to: '/payments', icon: FiDollarSign, label: 'Payments' },
+  { to: '/customers', icon: FiUsers, label: 'Customers' },
+]
 
 export const MobileBottomNav = () => {
-  const location = useLocation()
-  
-  const activeClass = 'text-blue-600'
-  const inactiveClass = 'text-gray-500 hover:text-gray-700'
-  
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white shadow-lg md:hidden">
-      <div className="flex justify-around">
-        <Link
-          to="/"
-          className={`flex flex-col items-center p-3 ${location.pathname === '/' ? activeClass : inactiveClass}`}
-        >
-          <FiHome className="h-6 w-6" />
-          <span className="text-xs mt-1">Home</span>
-        </Link>
-        
-        <Link
-          to="/orders"
-          className={`flex flex-col items-center p-3 ${location.pathname.startsWith('/orders') ? activeClass : inactiveClass}`}
-        >
-          <FiPackage className="h-6 w-6" />
-          <span className="text-xs mt-1">Orders</span>
-        </Link>
-        
-        <Link
-          to="/new-order"
-          className="flex flex-col items-center p-3 text-white"
-        >
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 shadow-md -mt-6">
-            <FiPlus className="h-6 w-6" />
-          </div>
-        </Link>
-        
-        <Link
-          to="/deliveries"
-          className={`flex flex-col items-center p-3 ${location.pathname.startsWith('/deliveries') ? activeClass : inactiveClass}`}
-        >
-          <FiTruck className="h-6 w-6" />
-          <span className="text-xs mt-1">Deliveries</span>
-        </Link>
-        
-        <Link
-          to="/reports"
-          className={`flex flex-col items-center p-3 ${location.pathname.startsWith('/reports') ? activeClass : inactiveClass}`}
-        >
-          <FiPieChart className="h-6 w-6" />
-          <span className="text-xs mt-1">Reports</span>
-        </Link>
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 md:hidden">
+      <div className="grid grid-cols-5 h-16">
+        {navItems.map(({ to, icon: Icon, label }) => (
+          <NavLink
+            key={to}
+            to={to}
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center space-y-1 transition-all duration-200 ${
+                isActive
+                  ? 'text-orange-500 bg-orange-50'
+                  : 'text-gray-600 hover:text-orange-500 hover:bg-gray-50'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <div className={`p-1 rounded-lg transition-all duration-200 ${
+                  isActive ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/25' : ''
+                }`}>
+                  <Icon className="h-5 w-5" />
+                </div>
+                <span className="text-xs font-medium">{label}</span>
+                {isActive && (
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-orange-500 rounded-b-full"></div>
+                )}
+              </>
+            )}
+          </NavLink>
+        ))}
       </div>
-    </div>
+    </nav>
   )
 }
