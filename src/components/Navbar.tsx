@@ -1,4 +1,4 @@
-import { FiSearch, FiUser, FiX } from 'react-icons/fi'
+import { FiSearch, FiUser, FiX, FiLogOut } from 'react-icons/fi'
 import { useState } from 'react'
 import { ModernRiftLogo } from './ModernRiftLogo'
 
@@ -8,6 +8,12 @@ type NavbarProps = {
 
 export const Navbar = ({ onMenuClick }: NavbarProps) => {
   const [showMobileSearch, setShowMobileSearch] = useState(false)
+
+  const handleLogout = () => {
+    // Add your logout logic here
+    // For example: clear tokens, redirect to login, etc.
+    console.log('Logout clicked')
+  }
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
@@ -48,12 +54,20 @@ export const Navbar = ({ onMenuClick }: NavbarProps) => {
               {showMobileSearch ? <FiX className="h-5 w-5" /> : <FiSearch className="h-5 w-5" />}
             </button>
 
-            {/* Profile */}
+            {/* Profile (Visible on all screens) */}
             <button className="flex items-center gap-2 p-2 rounded-lg text-gray-600 hover:text-orange-500 hover:bg-gray-50 transition-all duration-200">
               <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-green-500 rounded-full flex items-center justify-center">
                 <FiUser className="h-4 w-4 text-white" />
               </div>
               <span className="hidden sm:block text-sm font-medium">Profile</span>
+            </button>
+
+            {/* Logout (Mobile only) */}
+            <button
+              onClick={handleLogout}
+              className="md:hidden p-2 rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-200"
+            >
+              <FiLogOut className="h-5 w-5" />
             </button>
           </div>
         </div>
