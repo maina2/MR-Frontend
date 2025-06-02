@@ -1,34 +1,41 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { AnimatePresence } from 'framer-motion'
+
+import { MainLayout } from './layouts/MainLayout'
+import { Dashboard } from './pages/Dashboard'
+import { Orders } from './pages/Orders'
+import { Deliveries } from './pages/Deliveries'
+import { Payments } from './pages/Payments'
+import { Customers } from './pages/Customers'
+import { Reports } from './pages/Reports'
+import { Settings } from './pages/Settings'
+import { NewOrder } from './pages/NewOrder'
+import { NotFound } from './pages/NotFound'
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <BrowserRouter>
+      <Routes>
+        {/* Main Layout with sidebar and navbar */}
+        <Route path="/" element={<MainLayout />}>
+          {/* Index route */}
+          <Route index element={<Dashboard />} />
+          
+          {/* Main routes */}
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="orders" element={<Orders />} />
+          <Route path="orders/new" element={<NewOrder />} />
+          <Route path="deliveries" element={<Deliveries />} />
+          <Route path="payments" element={<Payments />} />
+          <Route path="customers" element={<Customers />} />
+          <Route path="reports" element={<Reports />} />
+          <Route path="settings" element={<Settings />} />
+
+          {/* 404 catch-all */}
+          <Route path="*" element={<NotFound />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   )
 }
 

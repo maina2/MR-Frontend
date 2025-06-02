@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
-import { Navbar } from './Navbar'
-import { Sidebar } from './Sidebar'
-import { Footer } from './Footer'
-import { MobileBottomNav } from './MobileBottomNav'
+import { Navbar } from '../components/Navbar'
+import { Sidebar } from '../components/Sidebar'
+import { Footer } from '../components/Footer'
+import { MobileBottomNav } from '../components/MobileBottomNav'
 
 export const MainLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true)
