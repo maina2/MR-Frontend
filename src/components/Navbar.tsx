@@ -1,8 +1,12 @@
-import { FiSearch, FiUser, FiX, FiLogOut } from 'react-icons/fi'
+import { FiSearch, FiUser, FiX, FiLogOut, FiMenu } from 'react-icons/fi'
 import { useState } from 'react'
 import { ModernRiftLogo } from './ModernRiftLogo'
 
-export const Navbar = () => {
+interface NavbarProps {
+  onMenuClick: () => void;
+}
+
+export const Navbar = ({ onMenuClick }: NavbarProps) => {
   const [showMobileSearch, setShowMobileSearch] = useState(false)
 
   const handleLogout = () => {
@@ -17,6 +21,13 @@ export const Navbar = () => {
         <div className="flex items-center justify-between h-full">
           {/* Left Section */}
           <div className="flex items-center gap-3">
+            {/* Menu Button */}
+            <button
+              onClick={onMenuClick}
+              className="p-2 rounded-lg text-gray-600 hover:text-orange-500 hover:bg-gray-50 transition-all duration-200"
+            >
+              <FiMenu className="h-5 w-5" />
+            </button>
             {/* Logo */}
             <div className="flex items-center">
               <ModernRiftLogo className="h-8 transition-transform duration-300 hover:scale-105" />

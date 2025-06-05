@@ -11,6 +11,8 @@ import  Reports  from './pages/Reports'
 import  Settings  from './pages/Settings'
 import  NewOrder  from './pages/Orders/NewOrder'
 import  NotFound  from './pages/NotFound'
+import Login from './pages/Login';
+import Register from './pages/Register';
 
 function App() {
   return (
@@ -36,6 +38,9 @@ function App() {
           {/* 404 catch-all */}
           <Route path="*" element={<NotFound />} />
         </Route>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/" element={<Login />} /> {/* Default route */}
       </Routes>
       </AnimatePresence>
 

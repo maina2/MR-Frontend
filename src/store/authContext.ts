@@ -2,24 +2,7 @@ import React from 'react';
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRegisterMutation, useLoginMutation, useLogoutMutation, useGetUserQuery } from '../api/apiSlice';
-
-// Define the user type based on your UserSerializer
-type User = {
-  id: number;
-  username: string;
-  email: string;
-};
-
-// Define the auth context shape
-type AuthContextType = {
-  user: User | null;
-  loading: boolean;
-  error: string | null;
-  login: (username: string, password: string) => Promise<void>;
-  register: (username: string, email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  isAuthenticated: boolean;
-};
+import type { AuthContextType, User } from '../types/users';
 
 // Create the context with a default value
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,7 +17,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [register] = useRegisterMutation();
   const [login] = useLoginMutation();
   const [logout] = useLogoutMutation();
-  const { data: userData, isLoading: isUserLoading, error: userError } = useGetUserQuery(undefined, {
+  const { data: userData, isLoading: isUserLoading, error: userError, refetch } = useGetUserQuery(undefined, {
     skip: !localStorage.getItem('accessToken'), // Skip query if no token
   });
 
@@ -62,11 +45,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       localStorage.setItem('accessToken', data.access);
       localStorage.setItem('refreshToken', data.refresh);
 
-      // Refetch user data after login
-      const userResponse = await useGetUserQuery(undefined, { forceRefetch: true }).unwrap();
-      setUser(userResponse);
+      // Refetch user data after login using the refetch function
+      const userResponse = await refetch();
+      if (userResponse.data) {
+        setUser(userResponse.data as User);
+      }
       navigate('/dashboard');
-    } catch (err) {
+    } catch (_) {
       setError('Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
@@ -88,7 +73,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         email: data.data.email,
       });
       navigate('/dashboard');
-    } catch (err) {
+    } catch (_) {
       setError('Registration failed. Please try again.');
     } finally {
       setLoading(false);
@@ -109,7 +94,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       localStorage.removeItem('refreshToken');
       setUser(null);
       navigate('/login');
-    } catch (err) {
+    } catch (_) {
       setError('An error occurred during logout.');
     } finally {
       setLoading(false);
@@ -129,7 +114,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         register: handleRegister,
         logout: handleLogout,
         isAuthenticated: isAuthenticated,
-      }
+      },
     },
     children
   );
