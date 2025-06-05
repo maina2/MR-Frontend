@@ -2,11 +2,7 @@ import { FiSearch, FiUser, FiX, FiLogOut } from 'react-icons/fi'
 import { useState } from 'react'
 import { ModernRiftLogo } from './ModernRiftLogo'
 
-type NavbarProps = {
-  onMenuClick: () => void
-}
-
-export const Navbar = ({ onMenuClick }: NavbarProps) => {
+export const Navbar = () => {
   const [showMobileSearch, setShowMobileSearch] = useState(false)
 
   const handleLogout = () => {
