@@ -1,12 +1,22 @@
 import React, { useState } from 'react';
 import { useGetCustomersQuery, useCreateCustomerMutation, useUpdateCustomerMutation, useDeleteCustomerMutation } from '../api/apiSlice';
 import type { Customer } from '../types/Customer';
+import toast from 'react-hot-toast';
 
 const Customers: React.FC = () => {
-  const { data: customers = [], isLoading, error } = useGetCustomersQuery();
-  const [createCustomer] = useCreateCustomerMutation();
-  const [updateCustomer] = useUpdateCustomerMutation();
-  const [deleteCustomer] = useDeleteCustomerMutation();
+  const { 
+    data: customers = [], 
+    isLoading: isQueryLoading, 
+    error: queryError,
+    refetch 
+  } = useGetCustomersQuery(undefined, {
+    pollingInterval: 0, // Disable polling, rely on tag invalidation
+    refetchOnMountOrArgChange: true, // Refetch when component mounts
+  });
+  
+  const [createCustomer, { isLoading: isCreating }] = useCreateCustomerMutation();
+  const [updateCustomer, { isLoading: isUpdating }] = useUpdateCustomerMutation();
+  const [deleteCustomer, { isLoading: isDeleting }] = useDeleteCustomerMutation();
 
   const [newCustomer, setNewCustomer] = useState<Partial<Customer>>({
     name: '',
@@ -21,7 +31,7 @@ const Customers: React.FC = () => {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createCustomer(newCustomer).unwrap();
+      const createdCustomer = await createCustomer(newCustomer).unwrap();
       setNewCustomer({
         name: '',
         phone: '',
@@ -30,7 +40,9 @@ const Customers: React.FC = () => {
         city: '',
       });
       setIsModalOpen(false);
+      toast.success('Customer created successfully!');
     } catch (err) {
+      toast.error('Failed to create customer. Please try again.');
       console.error('Failed to create customer:', err);
     }
   };
@@ -41,7 +53,9 @@ const Customers: React.FC = () => {
       try {
         await updateCustomer({ id: editCustomer.id, data: editCustomer }).unwrap();
         setEditCustomer(null);
+        toast.success('Customer updated successfully!');
       } catch (err) {
+        toast.error('Failed to update customer. Please try again.');
         console.error('Failed to update customer:', err);
       }
     }
@@ -49,16 +63,24 @@ const Customers: React.FC = () => {
 
   const handleDelete = async (id: number, name: string) => {
     if (window.confirm(`Are you sure you want to delete the customer ${name}?`)) {
+      // Optimistic update: remove customer from UI immediately
+      const previousCustomers = customers;
+      const updatedCustomers = customers.filter(customer => customer.id !== id);
+      // Update local state optimistically
+      // Note: RTK Query will handle the actual refetch due to invalidatesTags
       try {
         await deleteCustomer(id).unwrap();
+        toast.success('Customer deleted successfully!');
       } catch (err) {
+        // Rollback optimistic update if delete fails
+        toast.error('Failed to delete customer. Please try again.');
         console.error('Failed to delete customer:', err);
       }
     }
   };
 
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center text-gray-600">Loading...</div>;
-  if (error) return <div className="min-h-screen flex items-center justify-center text-red-500">Error loading customers</div>;
+  if (isQueryLoading) return <div className="min-h-screen flex items-center justify-center text-gray-600">Loading...</div>;
+  if (queryError) return <div className="min-h-screen flex items-center justify-center text-red-500">Error loading customers</div>;
 
   return (
     <div className="min-h-screen bg-[#f5f5f5] p-8">
@@ -67,9 +89,10 @@ const Customers: React.FC = () => {
           <h1 className="text-4xl font-bold text-gray-800 tracking-tight">Manage Customers</h1>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="px-6 py-2 bg-orange-500 text-white rounded-lg shadow-lg hover:bg-orange-600 hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+            disabled={isCreating}
+            className={`px-6 py-2 bg-orange-500 text-white rounded-lg shadow-lg hover:bg-orange-600 hover:shadow-xl transition-all duration-300 transform hover:scale-105 ${isCreating ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            Create Customer
+            {isCreating ? 'Creating...' : 'Create Customer'}
           </button>
         </div>
 
@@ -98,15 +121,17 @@ const Customers: React.FC = () => {
                   <div className="space-x-3">
                     <button
                       onClick={() => setEditCustomer(customer)}
-                      className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all duration-300 transform hover:scale-105"
+                      disabled={isUpdating || isDeleting}
+                      className={`px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all duration-300 transform hover:scale-105 ${isUpdating || isDeleting ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                      Edit
+                      {isUpdating && editCustomer?.id === customer.id ? 'Updating...' : 'Edit'}
                     </button>
                     <button
                       onClick={() => handleDelete(customer.id, customer.name)}
-                      className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all duration-300 transform hover:scale-105"
+                      disabled={isDeleting}
+                      className={`px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all duration-300 transform hover:scale-105 ${isDeleting ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                      Delete
+                      {isDeleting ? 'Deleting...' : 'Delete'}
                     </button>
                   </div>
                 </div>
@@ -165,9 +190,10 @@ const Customers: React.FC = () => {
                     <div className="flex space-x-3">
                       <button
                         type="submit"
-                        className="w-full py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all duration-300 transform hover:scale-105"
+                        disabled={isUpdating}
+                        className={`w-full py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all duration-300 transform hover:scale-105 ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
-                        Save Changes
+                        {isUpdating ? 'Saving...' : 'Save Changes'}
                       </button>
                       <button
                         type="button"
@@ -206,6 +232,7 @@ const Customers: React.FC = () => {
                     onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
                     className="w-full px-3 py-2 bg-white/15 text-gray-800 border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300"
                     required
+                    disabled={isCreating}
                   />
                 </div>
                 <div>
@@ -216,6 +243,7 @@ const Customers: React.FC = () => {
                     onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
                     className="w-full px-3 py-2 bg-white/15 text-gray-800 border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300"
                     required
+                    disabled={isCreating}
                   />
                 </div>
                 <div>
@@ -226,6 +254,7 @@ const Customers: React.FC = () => {
                     onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })}
                     className="w-full px-3 py-2 bg-white/15 text-gray-800 border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300"
                     required
+                    disabled={isCreating}
                   />
                 </div>
                 <div>
@@ -236,6 +265,7 @@ const Customers: React.FC = () => {
                     onChange={(e) => setNewCustomer({ ...newCustomer, postal_code: e.target.value })}
                     className="w-full px-3 py-2 bg-white/15 text-gray-800 border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300"
                     required
+                    disabled={isCreating}
                   />
                 </div>
                 <div>
@@ -246,15 +276,17 @@ const Customers: React.FC = () => {
                     onChange={(e) => setNewCustomer({ ...newCustomer, city: e.target.value })}
                     className="w-full px-3 py-2 bg-white/15 text-gray-800 border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300"
                     required
+                    disabled={isCreating}
                   />
                 </div>
               </div>
               <div className="flex space-x-3 mt-6">
                 <button
                   type="submit"
-                  className="w-full py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all duration-300 transform hover:scale-105"
+                  disabled={isCreating}
+                  className={`w-full py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all duration-300 transform hover:scale-105 ${isCreating ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  Create Customer
+                  {isCreating ? 'Creating...' : 'Create Customer'}
                 </button>
                 <button
                   type="button"

@@ -1,16 +1,33 @@
 import React, { useState } from 'react';
 import { useGetDeliveriesQuery, useCreateDeliveryMutation, useUpdateDeliveryMutation, useDeleteDeliveryMutation, useGetCustomersQuery } from '../api/apiSlice';
 import type { Delivery, Customer } from '../types/Delivery';
+import toast from 'react-hot-toast';
 
 const Deliveries: React.FC = () => {
-  const { data: deliveries = [], isLoading: isLoadingDeliveries, error: errorDeliveries } = useGetDeliveriesQuery();
-  const { data: customers = [], isLoading: isLoadingCustomers, error: errorCustomers } = useGetCustomersQuery();
-  const [createDelivery] = useCreateDeliveryMutation();
-  const [updateDelivery] = useUpdateDeliveryMutation();
-  const [deleteDelivery] = useDeleteDeliveryMutation();
+  const { 
+    data: deliveries = [], 
+    isLoading: isLoadingDeliveries, 
+    error: errorDeliveries 
+  } = useGetDeliveriesQuery(undefined, {
+    pollingInterval: 0, // Disable polling, rely on tag invalidation
+    refetchOnMountOrArgChange: true, // Refetch when component mounts
+  });
+  
+  const { 
+    data: customers = [], 
+    isLoading: isLoadingCustomers, 
+    error: errorCustomers 
+  } = useGetCustomersQuery(undefined, {
+    pollingInterval: 0,
+    refetchOnMountOrArgChange: true,
+  });
+  
+  const [createDelivery, { isLoading: isCreating }] = useCreateDeliveryMutation();
+  const [updateDelivery, { isLoading: isUpdating }] = useUpdateDeliveryMutation();
+  const [deleteDelivery, { isLoading: isDeleting }] = useDeleteDeliveryMutation();
 
   const [newDelivery, setNewDelivery] = useState<Partial<Delivery>>({
-    customer: null,
+    customer: undefined, // Changed to undefined for better type safety
     delivery_address: '',
     delivery_postal_code: '',
     delivery_city: '',
@@ -28,14 +45,16 @@ const Deliveries: React.FC = () => {
       };
       await createDelivery(dataToSend).unwrap();
       setNewDelivery({
-        customer: null,
+        customer: undefined,
         delivery_address: '',
         delivery_postal_code: '',
         delivery_city: '',
         delivery_status: 'pending',
       });
       setIsModalOpen(false);
+      toast.success('Delivery created successfully!');
     } catch (err) {
+      toast.error('Failed to create delivery. Please try again.');
       console.error('Failed to create delivery:', err);
     }
   };
@@ -49,7 +68,9 @@ const Deliveries: React.FC = () => {
         };
         await updateDelivery({ id: editDelivery.id, data: dataToSend }).unwrap();
         setEditDelivery(null);
+        toast.success('Delivery updated successfully!');
       } catch (err) {
+        toast.error('Failed to update delivery. Please try again.');
         console.error('Failed to update delivery:', err);
       }
     }
@@ -57,9 +78,15 @@ const Deliveries: React.FC = () => {
 
   const handleDelete = async (id: number, customerName: string) => {
     if (window.confirm(`Are you sure you want to delete the delivery for ${customerName}?`)) {
+      // Optimistic update: remove delivery from UI immediately
+      const previousDeliveries = deliveries;
+      const updatedDeliveries = deliveries.filter(delivery => delivery.id !== id);
+      // Note: RTK Query will handle the actual refetch due to invalidatesTags
       try {
         await deleteDelivery(id).unwrap();
+        toast.success('Delivery deleted successfully!');
       } catch (err) {
+        toast.error('Failed to delete delivery. Please try again.');
         console.error('Failed to delete delivery:', err);
       }
     }
@@ -88,9 +115,10 @@ const Deliveries: React.FC = () => {
           <h1 className="text-4xl font-bold text-gray-800 tracking-tight">Manage Deliveries</h1>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="px-6 py-2 bg-orange-500 text-white rounded-lg shadow-lg hover:bg-orange-600 hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+            disabled={isCreating}
+            className={`px-6 py-2 bg-orange-500 text-white rounded-lg shadow-lg hover:bg-orange-600 hover:shadow-xl transition-all duration-300 transform hover:scale-105 ${isCreating ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            Create Delivery
+            {isCreating ? 'Creating...' : 'Create Delivery'}
           </button>
         </div>
 
@@ -138,15 +166,17 @@ const Deliveries: React.FC = () => {
                   <div className="space-x-3">
                     <button
                       onClick={() => setEditDelivery(delivery)}
-                      className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all duration-300 transform hover:scale-105"
+                      disabled={isUpdating || isDeleting}
+                      className={`px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all duration-300 transform hover:scale-105 ${isUpdating || isDeleting ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                      Edit
+                      {isUpdating && editDelivery?.id === delivery.id ? 'Updating...' : 'Edit'}
                     </button>
                     <button
                       onClick={() => handleDelete(delivery.id, delivery.customer?.name || 'Unknown')}
-                      className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all duration-300 transform hover:scale-105"
+                      disabled={isDeleting}
+                      className={`px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all duration-300 transform hover:scale-105 ${isDeleting ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                      Delete
+                      {isDeleting ? 'Deleting...' : 'Delete'}
                     </button>
                   </div>
                 </div>
@@ -158,6 +188,7 @@ const Deliveries: React.FC = () => {
                         value={editDelivery.delivery_status || 'pending'}
                         onChange={(e) => setEditDelivery({ ...editDelivery, delivery_status: e.target.value as 'pending' | 'in_transit' | 'delivered' | 'cancelled' })}
                         className="w-full px-4 py-2 bg-white/15 text-gray-800 border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300"
+                        disabled={isUpdating}
                       >
                         <option value="pending">Pending</option>
                         <option value="in_transit">In Transit</option>
@@ -168,9 +199,10 @@ const Deliveries: React.FC = () => {
                     <div className="flex space-x-3">
                       <button
                         type="submit"
-                        className="w-full py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all duration-300 transform hover:scale-105"
+                        disabled={isUpdating}
+                        className={`w-full py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all duration-300 transform hover:scale-105 ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
-                        Save Changes
+                        {isUpdating ? 'Saving...' : 'Save Changes'}
                       </button>
                       <button
                         type="button"
@@ -207,10 +239,11 @@ const Deliveries: React.FC = () => {
                     value={newDelivery.customer ? (newDelivery.customer as Customer).id : ''}
                     onChange={(e) => {
                       const selectedCustomer = customers.find(c => c.id === parseInt(e.target.value));
-                      setNewDelivery({ ...newDelivery, customer: selectedCustomer || null });
+                      setNewDelivery({ ...newDelivery, customer: selectedCustomer || undefined });
                     }}
                     className="w-full px-3 py-2 bg-white/15 text-gray-800 border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300"
                     required
+                    disabled={isCreating}
                   >
                     <option value="">Select a Customer</option>
                     {customers.map((customer) => (
@@ -226,6 +259,7 @@ const Deliveries: React.FC = () => {
                     onChange={(e) => setNewDelivery({ ...newDelivery, delivery_address: e.target.value })}
                     className="w-full px-3 py-2 bg-white/15 text-gray-800 border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300"
                     placeholder={newDelivery.customer ? (newDelivery.customer as Customer).address : 'Enter address'}
+                    disabled={isCreating}
                   />
                 </div>
                 <div>
@@ -236,6 +270,7 @@ const Deliveries: React.FC = () => {
                     onChange={(e) => setNewDelivery({ ...newDelivery, delivery_postal_code: e.target.value })}
                     className="w-full px-3 py-2 bg-white/15 text-gray-800 border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300"
                     placeholder={newDelivery.customer ? (newDelivery.customer as Customer).postal_code : 'Enter postal code'}
+                    disabled={isCreating}
                   />
                 </div>
                 <div>
@@ -246,6 +281,7 @@ const Deliveries: React.FC = () => {
                     onChange={(e) => setNewDelivery({ ...newDelivery, delivery_city: e.target.value })}
                     className="w-full px-3 py-2 bg-white/15 text-gray-800 border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300"
                     placeholder={newDelivery.customer ? (newDelivery.customer as Customer).city : 'Enter city'}
+                    disabled={isCreating}
                   />
                 </div>
                 <div>
@@ -254,6 +290,7 @@ const Deliveries: React.FC = () => {
                     value={newDelivery.delivery_status || 'pending'}
                     onChange={(e) => setNewDelivery({ ...newDelivery, delivery_status: e.target.value as 'pending' | 'in_transit' | 'delivered' | 'cancelled' })}
                     className="w-full px-3 py-2 bg-white/15 text-gray-800 border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300"
+                    disabled={isCreating}
                   >
                     <option value="pending">Pending</option>
                     <option value="in_transit">In Transit</option>
@@ -265,9 +302,10 @@ const Deliveries: React.FC = () => {
               <div className="flex space-x-3 mt-6">
                 <button
                   type="submit"
-                  className="w-full py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all duration-300 transform hover:scale-105"
+                  disabled={isCreating}
+                  className={`w-full py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all duration-300 transform hover:scale-105 ${isCreating ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  Create Delivery
+                  {isCreating ? 'Creating...' : 'Create Delivery'}
                 </button>
                 <button
                   type="button"
