@@ -1,13 +1,10 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { Delivery } from '../types/Delivery'; 
-import { FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
-
-// Define BaseQueryFn manually
-type BaseQueryFn<
-  Args = string | FetchArgs,
-  Result = unknown,
-  Error = FetchBaseQueryError
-> = (args: Args, api: any, extraOptions: any) => Promise<{ data?: Result; error?: Error }>;
+import type {
+  BaseQueryFn,
+  FetchArgs,
+  FetchBaseQueryError,
+} from "@reduxjs/toolkit/query";
 
 // Define the refresh response type
 interface RefreshResponse {

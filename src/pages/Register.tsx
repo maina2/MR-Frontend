@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { useAuth } from '../store/authContext';
-import {  Link } from 'react-router-dom';
-import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import React, { useState } from "react";
+import { useAuth } from "../store/authContext";
+import { Link } from "react-router-dom";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
 const Register: React.FC = () => {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { register, loading } = useAuth();
@@ -17,7 +17,7 @@ const Register: React.FC = () => {
     try {
       await register(username, email, password);
     } catch (err) {
-      setError('Registration failed. Please try again.');
+      setError("Registration failed. Please try again.");
     }
   };
 
@@ -49,7 +49,9 @@ const Register: React.FC = () => {
             {/* Register Card */}
             <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-8">
               <div className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Hello User!</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  Hello User!
+                </h2>
                 <p className="text-gray-600">Create your account today✨</p>
               </div>
 
@@ -68,7 +70,10 @@ const Register: React.FC = () => {
                 <div className="space-y-4">
                   {/* Username Field */}
                   <div>
-                    <label htmlFor="username" className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label
+                      htmlFor="username"
+                      className="block text-sm font-semibold text-gray-700 mb-2"
+                    >
                       Username
                     </label>
                     <input
@@ -84,7 +89,10 @@ const Register: React.FC = () => {
 
                   {/* Email Field */}
                   <div>
-                    <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label
+                      htmlFor="email"
+                      className="block text-sm font-semibold text-gray-700 mb-2"
+                    >
                       Email Address
                     </label>
                     <input
@@ -100,13 +108,16 @@ const Register: React.FC = () => {
 
                   {/* Password Field */}
                   <div>
-                    <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label
+                      htmlFor="password"
+                      className="block text-sm font-semibold text-gray-700 mb-2"
+                    >
                       Password
                     </label>
                     <div className="relative">
                       <input
                         id="password"
-                        type={showPassword ? 'text' : 'password'}
+                        type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="w-full px-4 py-3 pr-12 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 focus:bg-white transition-all duration-200"
@@ -118,7 +129,11 @@ const Register: React.FC = () => {
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-yellow-500 transition-colors p-1"
                       >
-                        {showPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                        {showPassword ? (
+                          <EyeSlashIcon className="h-5 w-5" />
+                        ) : (
+                          <EyeIcon className="h-5 w-5" />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -129,9 +144,9 @@ const Register: React.FC = () => {
                   type="submit"
                   disabled={loading}
                   className={`w-full py-3 rounded-xl font-semibold text-white transition-all duration-300 flex items-center justify-center gap-2 ${
-                    loading 
-                      ? 'bg-gray-400 cursor-not-allowed' 
-                      : 'bg-green-500 hover:bg-green-600 hover:shadow-lg transform hover:-translate-y-0.5'
+                    loading
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-green-500 hover:bg-green-600 hover:shadow-lg transform hover:-translate-y-0.5"
                   }`}
                 >
                   {loading && (
@@ -141,7 +156,14 @@ const Register: React.FC = () => {
                       fill="none"
                       viewBox="0 0 24 24"
                     >
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
                       <path
                         className="opacity-75"
                         fill="currentColor"
@@ -149,16 +171,16 @@ const Register: React.FC = () => {
                       ></path>
                     </svg>
                   )}
-                  {loading ? 'Creating account...' : 'Create account'}
+                  {loading ? "Creating account..." : "Create account"}
                 </button>
               </form>
 
               {/* Login Link */}
               <div className="mt-8 text-center">
                 <p className="text-gray-600">
-                  Already have an account?{' '}
-                  <Link 
-                    to="/login" 
+                  Already have an account?{" "}
+                  <Link
+                    to="/login"
                     className="font-semibold text-yellow-600 hover:text-yellow-700 transition-colors"
                   >
                     Sign in
@@ -180,13 +202,14 @@ const Register: React.FC = () => {
                 Modern Rift POS
               </h1>
             </div>
-            
+
             <div className="space-y-4">
               <h2 className="text-3xl font-bold text-gray-800">
                 Start your business journey today
               </h2>
               <p className="text-lg text-gray-600 leading-relaxed">
-                Join thousands of successful businesses that trust Modern Rift POS to manage their operations, inventory, and sales.
+                Join thousands of successful businesses that trust Modern Rift
+                POS to manage their operations, inventory, and sales.
               </p>
             </div>
 
@@ -197,12 +220,16 @@ const Register: React.FC = () => {
                     <span className="text-white text-sm font-semibold">✓</span>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-800">30-day free trial</h3>
-                    <p className="text-sm text-gray-600">No credit card required</p>
+                    <h3 className="font-semibold text-gray-800">
+                      30-day free trial
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      No credit card required
+                    </p>
                   </div>
                 </div>
               </div>
-              
+
               <div className="bg-green-50 rounded-xl p-4 border border-green-200">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -210,7 +237,9 @@ const Register: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-800">Quick setup</h3>
-                    <p className="text-sm text-gray-600">Get started in under 5 minutes</p>
+                    <p className="text-sm text-gray-600">
+                      Get started in under 5 minutes
+                    </p>
                   </div>
                 </div>
               </div>
@@ -221,8 +250,12 @@ const Register: React.FC = () => {
                     <span className="text-white text-sm font-semibold">💬</span>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-800">24/7 support</h3>
-                    <p className="text-sm text-gray-600">We're here when you need us</p>
+                    <h3 className="font-semibold text-gray-800">
+                      24/7 support
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      We're here when you need us
+                    </p>
                   </div>
                 </div>
               </div>
