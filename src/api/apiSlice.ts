@@ -170,6 +170,7 @@ export const {
   useLoginMutation,
   useLogoutMutation,
   useGetUserQuery,
+  useUpdateUserMutation,
   useGetDeliveriesQuery,
   useCreateDeliveryMutation,
   useUpdateDeliveryMutation,

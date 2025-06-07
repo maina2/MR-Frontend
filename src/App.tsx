@@ -12,6 +12,7 @@ import NewOrder from "./pages/Orders/NewOrder";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import UserProfile from "./pages/UserProfile";
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
           <Route path="customers" element={<Customers />} />
           <Route path="reports" element={<Reports />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="profile" element={<UserProfile />} />
         </Route>
         {/* 404 catch-all */}
         <Route path="*" element={<NotFound />} />

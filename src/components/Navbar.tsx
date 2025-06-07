@@ -1,6 +1,8 @@
 import { FiSearch, FiUser, FiX, FiLogOut, FiMenu } from 'react-icons/fi'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { ModernRiftLogo } from './ModernRiftLogo'
+import { useNavigate } from 'react-router-dom';
+
 
 interface NavbarProps {
   onMenuClick: () => void;
@@ -8,12 +10,18 @@ interface NavbarProps {
 
 export const Navbar = ({ onMenuClick }: NavbarProps) => {
   const [showMobileSearch, setShowMobileSearch] = useState(false)
-
+  const navigate = useNavigate()
   const handleLogout = () => {
     // Add your logout logic here
     // For example: clear tokens, redirect to login, etc.
     console.log('Logout clicked')
   }
+
+ const handleProfileClick = useCallback(() => {
+    // Navigate to User Profile page
+    console.log('Navigating to User Profile page')
+    navigate('/profile')
+ },[navigate])
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
@@ -55,8 +63,11 @@ export const Navbar = ({ onMenuClick }: NavbarProps) => {
             </button>
 
             {/* Profile (Visible on all screens) */}
-            <button className="flex items-center gap-2 p-2 rounded-lg text-gray-600 hover:text-orange-500 hover:bg-gray-50 transition-all duration-200">
-              <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-green-500 rounded-full flex items-center justify-center">
+            <button
+              onClick={handleProfileClick}
+              className="flex items-center gap-2 p-2 rounded-lg text-gray-600 hover:text-orange-500 hover:bg-gray-50 transition-all duration-200"
+            >
+              <div className="w-8 h-8 500 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center">
                 <FiUser className="h-4 w-4 text-white" />
               </div>
               <span className="hidden sm:block text-sm font-medium">Profile</span>
