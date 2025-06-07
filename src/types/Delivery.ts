@@ -1,20 +1,13 @@
-export type Customer = {
-  id: number;
-  name: string;
-  phone: string;
-  address: string;
-  postal_code: string;
-  city: string;
-}
-
 export type Delivery = {
   id: number;
   parcel_id: string;
-  customer: Customer | null;
-  delivery_address: string | null;
-  delivery_postal_code: string | null;
-  delivery_city: string | null;
+  customer_name: string;
+  customer_phone: string;
+  delivery_address: string;
+  delivery_postal_code: string;
+  delivery_city: string;
   delivery_status: 'pending' | 'in_transit' | 'delivered' | 'cancelled';
-  created_at: string | null;
+  delivery_cost: number | null;
+  created_at: string;
   delivered_at: string | null;
 };

@@ -1,18 +1,8 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import type { Delivery } from '../types/Delivery'; 
-import type {
-  BaseQueryFn,
-  FetchArgs,
-  FetchBaseQueryError,
-} from "@reduxjs/toolkit/query";
-
-// Define the refresh response type
-interface RefreshResponse {
-  access: string;
-  refresh?: string;
-}
-
-// Basic baseQuery setup
+import type { Delivery } from '../types/Delivery';
+import type { Customer } from '../types/Customer';
+import type { Payment } from '../types/Payment';
+// Basic baseQuery setup with token handling
 const baseQuery = fetchBaseQuery({
   baseUrl: 'http://127.0.0.1:8000/api/',
   prepareHeaders: (headers) => {
@@ -25,11 +15,7 @@ const baseQuery = fetchBaseQuery({
 });
 
 // Custom baseQuery with token refresh logic
-const baseQueryWithReauth: BaseQueryFn<
-  string | FetchArgs,
-  unknown,
-  FetchBaseQueryError
-> = async (args, api, extraOptions) => {
+const baseQueryWithReauth = async (args: any, api: any, extraOptions: any) => {
   let result = await baseQuery(args, api, extraOptions);
 
   if (result.error && result.error.status === 401) {
@@ -37,7 +23,7 @@ const baseQueryWithReauth: BaseQueryFn<
     if (refreshToken) {
       const refreshResult = await baseQuery(
         {
-          url: 'refresh/', // Adjust URL based on your backend
+          url: 'refresh/',
           method: 'POST',
           body: { refresh: refreshToken },
         },
@@ -46,18 +32,16 @@ const baseQueryWithReauth: BaseQueryFn<
       );
 
       if (refreshResult.data) {
-        const refreshData = refreshResult.data as RefreshResponse;
+        const refreshData = refreshResult.data as { access: string; refresh?: string };
         const newAccessToken = refreshData.access;
         const newRefreshToken = refreshData.refresh || refreshToken;
 
-        // Update localStorage with new tokens
         localStorage.setItem('accessToken', newAccessToken);
         localStorage.setItem('refreshToken', newRefreshToken);
 
-        // Retry the original request with the new token
+        // Retry the original query with the new token
         result = await baseQuery(args, api, extraOptions);
       } else {
-        // Logout if refresh fails
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
       }
@@ -73,7 +57,7 @@ const baseQueryWithReauth: BaseQueryFn<
 export const apiSlice = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithReauth,
-  tagTypes: ['Users', 'Deliveries', 'Customers'],
+  tagTypes: ['Users', 'Deliveries', 'Customers','Payments'],
   endpoints: (builder) => ({
     // Users endpoints
     register: builder.mutation({
@@ -94,7 +78,6 @@ export const apiSlice = createApi({
       async onQueryStarted(_, { queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
-          // Assuming login response includes access and refresh tokens
           localStorage.setItem('accessToken', data.access);
           localStorage.setItem('refreshToken', data.refresh);
         } catch (error) {
@@ -131,7 +114,7 @@ export const apiSlice = createApi({
     }),
     createDelivery: builder.mutation<Delivery, Partial<Delivery>>({
       query: (newDelivery) => ({
-        url: 'deliveries/', // Fixed URL to match backend
+        url: 'delivery/',
         method: 'POST',
         body: newDelivery,
       }),
@@ -139,47 +122,22 @@ export const apiSlice = createApi({
     }),
     updateDelivery: builder.mutation<Delivery, { id: number; data: Partial<Delivery> }>({
       query: ({ id, data }) => ({
-        url: `deliveries/${id}/`, // Fixed URL to match backend
+        url: `delivery/${id}/`,
         method: 'PATCH',
         body: data,
       }),
       invalidatesTags: ['Deliveries'],
     }),
-    deleteDelivery: builder.mutation<{ message: string }, number>({
-      query: (id) => ({
-        url: `deliveries/${id}/delete/`, // Fixed URL to match backend
-        method: 'DELETE',
-      }),
-      invalidatesTags: ['Deliveries'],
-    }),
 
     // Customer endpoints
-    getCustomers: builder.query({
+    getCustomers: builder.query<Customer[], void>({
       query: () => 'customers/',
       providesTags: ['Customers'],
     }),
-    createCustomer: builder.mutation({
-      query: (data) => ({
-        url: 'customers/',
-        method: 'POST',
-        body: data,
-      }),
-      invalidatesTags: ['Customers'],
-    }),
-    updateCustomer: builder.mutation({
-      query: ({ id, data }) => ({
-        url: `customers/${id}/`,
-        method: 'PUT',
-        body: data,
-      }),
-      invalidatesTags: ['Customers'],
-    }),
-    deleteCustomer: builder.mutation({
-      query: (id) => ({
-        url: `customers/${id}/`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: ['Customers'],
+    // Payment endpoints
+    getPayments: builder.query<Payment[], void>({
+      query: () => 'payments/',
+      providesTags: ['Payments'],
     }),
   }),
 });
@@ -192,9 +150,6 @@ export const {
   useGetDeliveriesQuery,
   useCreateDeliveryMutation,
   useUpdateDeliveryMutation,
-  useDeleteDeliveryMutation,
   useGetCustomersQuery,
-  useCreateCustomerMutation,
-  useUpdateCustomerMutation,
-  useDeleteCustomerMutation,
+  useGetPaymentsQuery
 } = apiSlice;

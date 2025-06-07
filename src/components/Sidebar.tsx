@@ -44,12 +44,7 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
               text="Dashboard" 
               isCollapsed={!isOpen}
             />
-            <NavItem 
-              to="/orders" 
-              icon={<FiPackage className="h-5 w-5" />} 
-              text="Orders" 
-              isCollapsed={!isOpen}
-            />
+
             <NavItem 
               to="/deliveries" 
               icon={<FiTruck className="h-5 w-5" />} 

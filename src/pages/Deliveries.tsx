@@ -3,10 +3,8 @@ import {
   useGetDeliveriesQuery,
   useCreateDeliveryMutation,
   useUpdateDeliveryMutation,
-  useDeleteDeliveryMutation,
-  useGetCustomersQuery,
 } from "../api/apiSlice";
-import type { Delivery, Customer } from "../types/Delivery";
+import type { Delivery } from "../types/Delivery";
 import toast from "react-hot-toast";
 
 const Deliveries: React.FC = () => {
@@ -15,69 +13,55 @@ const Deliveries: React.FC = () => {
     isLoading: isLoadingDeliveries,
     error: errorDeliveries,
   } = useGetDeliveriesQuery(undefined, {
-    pollingInterval: 0, // Disable polling, rely on tag invalidation
-    refetchOnMountOrArgChange: true, // Refetch when component mounts
+    pollingInterval: 0, 
+    refetchOnMountOrArgChange: true, 
   });
 
-  const {
-    data: customers = [],
-    isLoading: isLoadingCustomers,
-    error: errorCustomers,
-  } = useGetCustomersQuery(undefined, {
-    pollingInterval: 0,
-    refetchOnMountOrArgChange: true,
-  });
-
-  const [createDelivery, { isLoading: isCreating }] =
-    useCreateDeliveryMutation();
-  const [updateDelivery, { isLoading: isUpdating }] =
-    useUpdateDeliveryMutation();
-  const [deleteDelivery, { isLoading: isDeleting }] =
-    useDeleteDeliveryMutation();
+  const [createDelivery, { isLoading: isCreating }] = useCreateDeliveryMutation();
+  const [updateDelivery, { isLoading: isUpdating }] = useUpdateDeliveryMutation();
 
   const [newDelivery, setNewDelivery] = useState<Partial<Delivery>>({
-    customer: undefined, // Changed to undefined for better type safety
+    customer_name: "",
+    customer_phone: "",
     delivery_address: "",
     delivery_postal_code: "",
     delivery_city: "",
     delivery_status: "pending",
+    delivery_cost: null, 
   });
   const [editDelivery, setEditDelivery] = useState<Partial<Delivery> | null>(
     null
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const dataToSend = {
-        ...newDelivery,
-        customer: newDelivery.customer
-          ? (newDelivery.customer as Customer).id
-          : null,
-      };
-      await createDelivery(dataToSend).unwrap();
-      setNewDelivery({
-        customer: undefined,
-        delivery_address: "",
-        delivery_postal_code: "",
-        delivery_city: "",
-        delivery_status: "pending",
-      });
-      setIsModalOpen(false);
-      toast.success("Delivery created successfully!");
-    } catch (err) {
-      toast.error("Failed to create delivery. Please try again.");
-      console.error("Failed to create delivery:", err);
-    }
-  };
-
+const handleCreate = async (e: React.FormEvent) => {
+  e.preventDefault();
+  try {
+    console.log("Sending data:", newDelivery); // Debug log
+    await createDelivery(newDelivery).unwrap();
+    setNewDelivery({
+      customer_name: "",
+      customer_phone: "",
+      delivery_address: "",
+      delivery_postal_code: "",
+      delivery_city: "",
+      delivery_status: "pending",
+      delivery_cost: null,
+    });
+    setIsModalOpen(false);
+    toast.success("Delivery created successfully!");
+  } catch (err) {
+    toast.error("Failed to create delivery. Please try again.");
+    console.error("Failed to create delivery:", err);
+  }
+};
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editDelivery?.id) {
       try {
         const dataToSend = {
           delivery_status: editDelivery.delivery_status,
+          delivery_cost: editDelivery.delivery_cost, // Include new field
         };
         await updateDelivery({
           id: editDelivery.id,
@@ -88,28 +72,6 @@ const Deliveries: React.FC = () => {
       } catch (err) {
         toast.error("Failed to update delivery. Please try again.");
         console.error("Failed to update delivery:", err);
-      }
-    }
-  };
-
-  const handleDelete = async (id: number, customerName: string) => {
-    if (
-      window.confirm(
-        `Are you sure you want to delete the delivery for ${customerName}?`
-      )
-    ) {
-      // Optimistic update: remove delivery from UI immediately
-      const previousDeliveries = deliveries;
-      const updatedDeliveries = deliveries.filter(
-        (delivery) => delivery.id !== id
-      );
-      // Note: RTK Query will handle the actual refetch due to invalidatesTags
-      try {
-        await deleteDelivery(id).unwrap();
-        toast.success("Delivery deleted successfully!");
-      } catch (err) {
-        toast.error("Failed to delete delivery. Please try again.");
-        console.error("Failed to delete delivery:", err);
       }
     }
   };
@@ -127,13 +89,13 @@ const Deliveries: React.FC = () => {
     }
   };
 
-  if (isLoadingDeliveries || isLoadingCustomers)
+  if (isLoadingDeliveries)
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-600">
         Loading...
       </div>
     );
-  if (errorDeliveries || errorCustomers)
+  if (errorDeliveries)
     return (
       <div className="min-h-screen flex items-center justify-center text-red-500">
         Error loading data
@@ -177,25 +139,30 @@ const Deliveries: React.FC = () => {
                       </span>
                     </div>
                     <div className="text-gray-600 text-sm">
-                      Customer:{" "}
+                      Customer Name:{" "}
                       <span className="text-gray-800 font-medium">
-                        {delivery.customer?.name || "N/A"}
+                        {delivery.customer_name}
+                      </span>
+                    </div>
+                    <div className="text-gray-600 text-sm">
+                      Customer Phone:{" "}
+                      <span className="text-gray-800 font-medium">
+                        {delivery.customer_phone}
                       </span>
                     </div>
                     <div className="text-gray-600 text-sm">
                       Address:{" "}
                       <span className="text-gray-800 font-medium">
-                        {delivery.delivery_address ||
-                          delivery.customer?.address ||
-                          "N/A"}
-                        ,{" "}
-                        {delivery.delivery_city ||
-                          delivery.customer?.city ||
-                          "N/A"}
-                        ,{" "}
-                        {delivery.delivery_postal_code ||
-                          delivery.customer?.postal_code ||
-                          "N/A"}
+                        {delivery.delivery_address}, {delivery.delivery_city},{" "}
+                        {delivery.delivery_postal_code}
+                      </span>
+                    </div>
+                    <div className="text-gray-600 text-sm">
+                      Cost:{" "}
+                      <span className="text-gray-800 font-medium">
+                        {delivery.delivery_cost !== null
+                          ? `${delivery.delivery_cost} Ksh`
+                          : "N/A"}
                       </span>
                     </div>
                     <div className="text-gray-600 text-sm flex items-center gap-2">
@@ -210,9 +177,7 @@ const Deliveries: React.FC = () => {
                     <div className="text-gray-600 text-sm">
                       Created:{" "}
                       <span className="text-gray-800 font-medium">
-                        {delivery.created_at
-                          ? new Date(delivery.created_at).toLocaleDateString()
-                          : "N/A"}
+                        {new Date(delivery.created_at).toLocaleDateString()}
                       </span>
                     </div>
                     {delivery.delivered_at && (
@@ -227,25 +192,14 @@ const Deliveries: React.FC = () => {
                   <div className="space-x-3">
                     <button
                       onClick={() => setEditDelivery(delivery)}
-                      disabled={isUpdating || isDeleting}
-                      className={`px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all duration-300 transform hover:scale-105 ${isUpdating || isDeleting ? "opacity-50 cursor-not-allowed" : ""}`}
+                      disabled={isUpdating}
+                      className={`px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all duration-300 transform hover:scale-105 ${isUpdating ? "opacity-50 cursor-not-allowed" : ""}`}
                     >
                       {isUpdating && editDelivery?.id === delivery.id
                         ? "Updating..."
                         : "Edit"}
                     </button>
-                    <button
-                      onClick={() =>
-                        handleDelete(
-                          delivery.id,
-                          delivery.customer?.name || "Unknown"
-                        )
-                      }
-                      disabled={isDeleting}
-                      className={`px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all duration-300 transform hover:scale-105 ${isDeleting ? "opacity-50 cursor-not-allowed" : ""}`}
-                    >
-                      {isDeleting ? "Deleting..." : "Delete"}
-                    </button>
+                    {/* Remove delete button since no backend endpoint */}
                   </div>
                 </div>
                 {editDelivery?.id === delivery.id && (
@@ -274,6 +228,26 @@ const Deliveries: React.FC = () => {
                         <option value="delivered">Delivered</option>
                         <option value="cancelled">Cancelled</option>
                       </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">
+                        Cost
+                      </label>
+                      <input
+                        type="number"
+                        value={editDelivery.delivery_cost || ""}
+                        onChange={(e) =>
+                          setEditDelivery({
+                            ...editDelivery,
+                            delivery_cost: e.target.value
+                              ? parseFloat(e.target.value)
+                              : null,
+                          })
+                        }
+                        className="w-full px-4 py-2 bg-white/15 text-gray-800 border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300"
+                        placeholder="Enter cost"
+                        disabled={isUpdating}
+                      />
                     </div>
                     <div className="flex space-x-3">
                       <button
@@ -314,40 +288,45 @@ const Deliveries: React.FC = () => {
             </h2>
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
+                <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">
-                    Customer
+                    Customer Name
                   </label>
-                  <select
-                    value={
-                      newDelivery.customer
-                        ? (newDelivery.customer as Customer).id
-                        : ""
-                    }
-                    onChange={(e) => {
-                      const selectedCustomer = customers.find(
-                        (c) => c.id === parseInt(e.target.value)
-                      );
+                  <input
+                    type="text"
+                    value={newDelivery.customer_name || ""}
+                    onChange={(e) =>
                       setNewDelivery({
                         ...newDelivery,
-                        customer: selectedCustomer || undefined,
-                      });
-                    }}
+                        customer_name: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 bg-white/15 text-gray-800 border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300"
                     required
                     disabled={isCreating}
-                  >
-                    <option value="">Select a Customer</option>
-                    {customers.map((customer) => (
-                      <option key={customer.id} value={customer.id}>
-                        {customer.name}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">
-                    Delivery Address (Optional)
+                    Customer Phone
+                  </label>
+                  <input
+                    type="text"
+                    value={newDelivery.customer_phone || ""}
+                    onChange={(e) =>
+                      setNewDelivery({
+                        ...newDelivery,
+                        customer_phone: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 bg-white/15 text-gray-800 border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300"
+                    required
+                    disabled={isCreating}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Delivery Address
                   </label>
                   <input
                     type="text"
@@ -359,17 +338,13 @@ const Deliveries: React.FC = () => {
                       })
                     }
                     className="w-full px-3 py-2 bg-white/15 text-gray-800 border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300"
-                    placeholder={
-                      newDelivery.customer
-                        ? (newDelivery.customer as Customer).address
-                        : "Enter address"
-                    }
+                    required
                     disabled={isCreating}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">
-                    Postal Code (Optional)
+                    Postal Code
                   </label>
                   <input
                     type="text"
@@ -381,17 +356,13 @@ const Deliveries: React.FC = () => {
                       })
                     }
                     className="w-full px-3 py-2 bg-white/15 text-gray-800 border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300"
-                    placeholder={
-                      newDelivery.customer
-                        ? (newDelivery.customer as Customer).postal_code
-                        : "Enter postal code"
-                    }
+                    required
                     disabled={isCreating}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">
-                    City (Optional)
+                    City
                   </label>
                   <input
                     type="text"
@@ -403,11 +374,27 @@ const Deliveries: React.FC = () => {
                       })
                     }
                     className="w-full px-3 py-2 bg-white/15 text-gray-800 border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300"
-                    placeholder={
-                      newDelivery.customer
-                        ? (newDelivery.customer as Customer).city
-                        : "Enter city"
+                    required
+                    disabled={isCreating}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Cost
+                  </label>
+                  <input
+                    type="number"
+                    value={newDelivery.delivery_cost || ""}
+                    onChange={(e) =>
+                      setNewDelivery({
+                        ...newDelivery,
+                        delivery_cost: e.target.value
+                          ? parseFloat(e.target.value)
+                          : null,
+                      })
                     }
+                    className="w-full px-3 py-2 bg-white/15 text-gray-800 border border-white/40 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300"
+                    placeholder="Enter cost"
                     disabled={isCreating}
                   />
                 </div>

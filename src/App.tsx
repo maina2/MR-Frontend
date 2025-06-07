@@ -3,7 +3,6 @@ import { AnimatePresence } from "framer-motion";
 
 import { MainLayout } from "./layouts/MainLayout";
 import Dashboard from "./pages/Dashboard";
-import Orders from "./pages/Orders/Index";
 import Deliveries from "./pages/Deliveries";
 import Payments from "./pages/Payments";
 import Customers from "./pages/Customers";
@@ -25,7 +24,6 @@ function App() {
 
           {/* Main routes */}
           <Route path="dashboard" element={<Dashboard />} />
-          <Route path="orders" element={<Orders />} />
           <Route path="orders/new" element={<NewOrder />} />
           <Route path="deliveries" element={<Deliveries />} />
           <Route path="payments" element={<Payments />} />
