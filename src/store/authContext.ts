@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [login] = useLoginMutation();
   const [logout] = useLogoutMutation();
   const { data: userData, isLoading: isUserLoading, error: userError, refetch } = useGetUserQuery(undefined, {
-    skip: !localStorage.getItem('accessToken'), // Skip query if no token
+    skip: !localStorage.getItem('accessToken'), 
   });
 
   // Initialize auth state

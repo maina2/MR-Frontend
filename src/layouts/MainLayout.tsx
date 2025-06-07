@@ -6,7 +6,8 @@ import { Footer } from '../components/Footer'
 import { MobileBottomNav } from '../components/MobileBottomNav'
 
 export const MainLayout = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  // Changed from true to false to make collapsed the default
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -16,7 +17,7 @@ export const MainLayout = () => {
       {/* Sidebar */}
       <Sidebar 
         isOpen={sidebarOpen} 
-        onToggle={() => setSidebarOpen(!sidebarOpen)} 
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
       />
       
       {/* Main Content Container */}

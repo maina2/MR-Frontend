@@ -2,6 +2,8 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { Delivery } from '../types/Delivery';
 import type { Customer } from '../types/Customer';
 import type { Payment } from '../types/Payment';
+import type { Settings } from '../types/Settings';
+import type { User } from '../types/User';
 // Basic baseQuery setup with token handling
 const baseQuery = fetchBaseQuery({
   baseUrl: 'http://127.0.0.1:8000/api/',
@@ -57,7 +59,7 @@ const baseQueryWithReauth = async (args: any, api: any, extraOptions: any) => {
 export const apiSlice = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithReauth,
-  tagTypes: ['Users', 'Deliveries', 'Customers','Payments'],
+  tagTypes: ['Users', 'Deliveries', 'Customers','Payments','Settings'],
   endpoints: (builder) => ({
     // Users endpoints
     register: builder.mutation({
@@ -102,9 +104,17 @@ export const apiSlice = createApi({
         }
       },
     }),
-    getUser: builder.query({
-      query: () => 'user/',
+    getUser: builder.query<User, void>({
+      query: () => 'profile/',
       providesTags: ['Users'],
+    }),
+    updateUser: builder.mutation<User, Partial<User>>({
+      query: (userData) => ({
+        url: 'profile/',
+        method: 'PUT',
+        body: userData,
+      }),
+      invalidatesTags: ['Users'],
     }),
 
     // Delivery endpoints
@@ -139,6 +149,19 @@ export const apiSlice = createApi({
       query: () => 'payments/',
       providesTags: ['Payments'],
     }),
+        // Settings endpoints
+    getSettings: builder.query<Settings, void>({
+      query: () => 'business-details/',
+      providesTags: ['Settings'],
+    }),
+    updateSettings: builder.mutation<Settings, Partial<Settings>>({
+      query: (data) => ({
+        url: 'business-details/',
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['Settings'],
+    }),
   }),
 });
 
@@ -151,5 +174,7 @@ export const {
   useCreateDeliveryMutation,
   useUpdateDeliveryMutation,
   useGetCustomersQuery,
-  useGetPaymentsQuery
+  useGetPaymentsQuery,
+  useGetSettingsQuery,
+  useUpdateSettingsMutation,
 } = apiSlice;
