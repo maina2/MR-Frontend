@@ -1,6 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { Delivery } from '../types/Delivery';
-import type { Customer } from '../types/Customer';
+import type { PaginatedDeliveries } from '../types/Delivery';
+import type { PaginatedCustomers } from '../types/Customer';
 import type { Payment } from '../types/Payment';
 import type { Settings } from '../types/Settings';
 import type { User } from '../types/User';
@@ -118,8 +119,14 @@ export const apiSlice = createApi({
     }),
 
     // Delivery endpoints
-    getDeliveries: builder.query<Delivery[], void>({
-      query: () => 'deliveries/',
+    getDeliveries: builder.query<
+      PaginatedDeliveries,
+      { limit?: number; offset?: number; delivery_status?: string }
+    >({
+      query: ({ limit = 12, offset = 0, delivery_status }) => ({
+        url: 'deliveries/',
+        params: { limit, offset, ...(delivery_status && { delivery_status }) },
+      }),
       providesTags: ['Deliveries'],
     }),
     createDelivery: builder.mutation<Delivery, Partial<Delivery>>({
@@ -130,7 +137,10 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Deliveries'],
     }),
-    updateDelivery: builder.mutation<Delivery, { id: number; data: Partial<Delivery> }>({
+    updateDelivery: builder.mutation<
+      Delivery,
+      { id: number; data: Partial<Delivery> }
+    >({
       query: ({ id, data }) => ({
         url: `delivery/${id}/`,
         method: 'PATCH',
@@ -138,10 +148,22 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Deliveries'],
     }),
-
+    deleteDelivery: builder.mutation<void, number>({
+      query: (id) => ({
+        url: `delivery/${id}/`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Deliveries'],
+    }),
     // Customer endpoints
-    getCustomers: builder.query<Customer[], void>({
-      query: () => 'customers/',
+    getCustomers: builder.query<
+      PaginatedCustomers,
+      { limit?: number; offset?: number; search?: string }
+    >({
+      query: ({ limit = 12, offset = 0, search }) => ({
+        url: 'customers/',
+        params: { limit, offset, ...(search && { search }) },
+      }),
       providesTags: ['Customers'],
     }),
     // Payment endpoints
@@ -174,6 +196,7 @@ export const {
   useGetDeliveriesQuery,
   useCreateDeliveryMutation,
   useUpdateDeliveryMutation,
+  useDeleteDeliveryMutation,
   useGetCustomersQuery,
   useGetPaymentsQuery,
   useGetSettingsQuery,

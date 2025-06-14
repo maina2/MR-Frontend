@@ -8,7 +8,6 @@ import Payments from "./pages/Payments";
 import Customers from "./pages/Customers";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
-import NewOrder from "./pages/Orders/NewOrder";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -25,7 +24,6 @@ function App() {
 
           {/* Main routes */}
           <Route path="dashboard" element={<Dashboard />} />
-          <Route path="orders/new" element={<NewOrder />} />
           <Route path="deliveries" element={<Deliveries />} />
           <Route path="payments" element={<Payments />} />
           <Route path="customers" element={<Customers />} />

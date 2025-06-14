@@ -3,22 +3,39 @@ import {
   useGetDeliveriesQuery,
   useCreateDeliveryMutation,
   useUpdateDeliveryMutation,
+  useDeleteDeliveryMutation,
 } from "../api/apiSlice";
 import type { Delivery } from "../types/Delivery";
 import toast from "react-hot-toast";
 
+const PAGE_SIZE = 12; // Matches DRF PAGE_SIZE
+
 const Deliveries: React.FC = () => {
+  const [offset, setOffset] = useState(0);
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "pending" | "in_transit" | "delivered" | "cancelled"
+  >("all");
+
   const {
-    data: deliveries = [],
+    data: paginatedDeliveries,
     isLoading: isLoadingDeliveries,
     error: errorDeliveries,
-  } = useGetDeliveriesQuery(undefined, {
-    pollingInterval: 0,
-    refetchOnMountOrArgChange: true,
-  });
+    isFetching,
+  } = useGetDeliveriesQuery(
+    {
+      limit: PAGE_SIZE,
+      offset,
+      ...(statusFilter !== "all" && { delivery_status: statusFilter }),
+    },
+    {
+      pollingInterval: 0,
+      refetchOnMountOrArgChange: true,
+    }
+  );
 
   const [createDelivery, { isLoading: isCreating }] = useCreateDeliveryMutation();
   const [updateDelivery, { isLoading: isUpdating }] = useUpdateDeliveryMutation();
+  const [deleteDelivery, { isLoading: isDeleting }] = useDeleteDeliveryMutation();
 
   const [newDelivery, setNewDelivery] = useState<Partial<Delivery>>({
     customer_name: "",
@@ -27,15 +44,19 @@ const Deliveries: React.FC = () => {
     delivery_postal_code: "",
     delivery_city: "",
     delivery_status: "pending",
-    delivery_cost: null,
+    delivery_cost: "",
   });
   const [editDelivery, setEditDelivery] = useState<Partial<Delivery> | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const deliveries = paginatedDeliveries?.results ?? [];
+  const totalCount = paginatedDeliveries?.count ?? 0;
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+  const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      console.log("Sending data:", newDelivery);
       await createDelivery(newDelivery).unwrap();
       setNewDelivery({
         customer_name: "",
@@ -44,12 +65,14 @@ const Deliveries: React.FC = () => {
         delivery_postal_code: "",
         delivery_city: "",
         delivery_status: "pending",
-        delivery_cost: null,
+        delivery_cost: "",
       });
       setIsModalOpen(false);
       toast.success("Delivery created successfully!");
-    } catch (err) {
-      toast.error("Failed to create delivery. Please try again.");
+    } catch (err: any) {
+      const errorMessage =
+        err?.data?.detail || "Failed to create delivery. Please try again.";
+      toast.error(errorMessage);
       console.error("Failed to create delivery:", err);
     }
   };
@@ -60,7 +83,7 @@ const Deliveries: React.FC = () => {
       try {
         const dataToSend = {
           delivery_status: editDelivery.delivery_status,
-          delivery_cost: editDelivery.delivery_cost,
+          delivery_cost: editDelivery.delivery_cost || null,
         };
         await updateDelivery({
           id: editDelivery.id,
@@ -69,11 +92,31 @@ const Deliveries: React.FC = () => {
         setEditDelivery(null);
         setIsModalOpen(false);
         toast.success("Delivery updated successfully!");
-      } catch (err) {
-        toast.error("Failed to update delivery. Please try again.");
+      } catch (err: any) {
+        const errorMessage =
+          err?.data?.detail || "Failed to update delivery. Please try again.";
+        toast.error(errorMessage);
         console.error("Failed to update delivery:", err);
       }
     }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (window.confirm("Are you sure you want to delete this delivery?")) {
+      try {
+        await deleteDelivery(id).unwrap();
+        toast.success("Delivery deleted successfully!");
+      } catch (err: any) {
+        const errorMessage =
+          err?.data?.error || "Failed to delete delivery. Please try again.";
+        toast.error(errorMessage);
+        console.error("Failed to delete delivery:", err);
+      }
+    }
+  };
+
+  const handlePageChange = (newOffset: number) => {
+    setOffset(newOffset);
   };
 
   const getStatusColor = (status: string) => {
@@ -102,7 +145,7 @@ const Deliveries: React.FC = () => {
     }
   };
 
-  if (isLoadingDeliveries)
+  if (isLoadingDeliveries) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
         <div className="flex flex-col items-center space-y-2">
@@ -111,16 +154,22 @@ const Deliveries: React.FC = () => {
         </div>
       </div>
     );
-  if (errorDeliveries)
+  }
+
+  if (errorDeliveries) {
+    const errorMessage =
+      (errorDeliveries as any)?.data?.detail ||
+      "Error loading deliveries. Please try refreshing.";
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
         <div className="text-center">
           <div className="text-5xl mb-2">⚠️</div>
-          <p className="text-rose-600 font-semibold">Error loading deliveries</p>
-          <p className="text-slate-500 mt-1">Please try refreshing</p>
+          <p className="text-rose-600 font-semibold">{errorMessage}</p>
+          <p className="text-slate-500 mt-1">Please try refreshing or check your filters.</p>
         </div>
       </div>
     );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-2 sm:p-4">
@@ -135,24 +184,86 @@ const Deliveries: React.FC = () => {
           <button
             onClick={() => setIsModalOpen(true)}
             disabled={isCreating}
-            className={`px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 ${isCreating ? "opacity-50 cursor-not-allowed" : ""}`}
+            className={`px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 ${
+              isCreating ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           >
             {isCreating ? "Creating..." : "New Delivery"}
           </button>
         </div>
 
+        {/* Status Filters */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {[
+            { label: "All", value: "all" },
+            { label: "Pending", value: "pending" },
+            { label: "In Transit", value: "in_transit" },
+            { label: "Delivered", value: "delivered" },
+            { label: "Cancelled", value: "cancelled" },
+          ].map((filter) => (
+            <button
+              key={filter.value}
+              onClick={() => {
+                setStatusFilter(
+                  filter.value as
+                    | "all"
+                    | "pending"
+                    | "in_transit"
+                    | "delivered"
+                    | "cancelled"
+                );
+                setOffset(0); // Reset to first page on filter change
+              }}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                statusFilter === filter.value
+                  ? "bg-orange-500 text-white shadow-md"
+                  : "bg-white/70 text-slate-700 border border-white/50 hover:bg-orange-100"
+              }`}
+            >
+              {filter.label}
+            </button>
+          ))}
+        </div>
+
         {/* Stats Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
           {[
-            { label: "Total", count: deliveries.length, color: "blue" },
-            { label: "Pending", count: deliveries.filter(d => d.delivery_status === "pending").length, color: "slate" },
-            { label: "In Transit", count: deliveries.filter(d => d.delivery_status === "in_transit").length, color: "amber" },
-            { label: "Delivered", count: deliveries.filter(d => d.delivery_status === "delivered").length, color: "emerald" },
+            { label: "Total", count: totalCount, color: "blue" },
+            {
+              label: "Pending",
+              count: deliveries.filter((d) => d.delivery_status === "pending").length,
+              color: "slate",
+            },
+            {
+              label: "In Transit",
+              count: deliveries.filter((d) => d.delivery_status === "in_transit")
+                .length,
+              color: "amber",
+            },
+            {
+              label: "Delivered",
+              count: deliveries.filter((d) => d.delivery_status === "delivered")
+                .length,
+              color: "emerald",
+            },
           ].map((stat, idx) => (
-            <div key={idx} className={`bg-white/70 rounded-xl p-2 border border-white/50 shadow-sm hover:shadow-md transition-all duration-200 ${stat.color === "blue" ? "hover:bg-blue-50" : stat.color === "slate" ? "hover:bg-slate-50" : stat.color === "amber" ? "hover:bg-amber-50" : "hover:bg-emerald-50"}`}>
+            <div
+              key={idx}
+              className={`bg-white/70 rounded-xl p-2 border border-white/50 shadow-sm hover:shadow-md transition-all duration-200 ${
+                stat.color === "blue"
+                  ? "hover:bg-blue-50"
+                  : stat.color === "slate"
+                  ? "hover:bg-slate-50"
+                  : stat.color === "amber"
+                  ? "hover:bg-amber-50"
+                  : "hover:bg-emerald-50"
+              }`}
+            >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium uppercase text-slate-600">{stat.label}</p>
+                  <p className="text-xs font-medium uppercase text-slate-600">
+                    {stat.label}
+                  </p>
                   <p className="text-lg font-bold text-slate-800">{stat.count}</p>
                 </div>
               </div>
@@ -166,7 +277,7 @@ const Deliveries: React.FC = () => {
             <div className="bg-white/70 rounded-xl p-4 border border-white/50 shadow-sm text-center col-span-full">
               <div className="text-4xl mb-2 opacity-50">📦</div>
               <p className="text-slate-600 font-medium">No deliveries found</p>
-              <p className="text-slate-500">Create your first delivery</p>
+              <p className="text-slate-500">Create your first delivery or adjust filters</p>
             </div>
           ) : (
             deliveries.map((delivery) => (
@@ -198,7 +309,9 @@ const Deliveries: React.FC = () => {
                     <div>
                       <p className="text-xs text-slate-500">Address</p>
                       <p className="text-slate-700 text-sm">{delivery.delivery_address}</p>
-                      <p className="text-xs text-slate-600">{delivery.delivery_city}, {delivery.delivery_postal_code}</p>
+                      <p className="text-xs text-slate-600">
+                        {delivery.delivery_city}, {delivery.delivery_postal_code}
+                      </p>
                     </div>
                   </div>
 
@@ -206,12 +319,17 @@ const Deliveries: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-1">
                       <span className="text-lg">{getStatusIcon(delivery.delivery_status)}</span>
-                      <span className={`text-xs font-medium px-2 py-1 rounded-full ${getStatusColor(delivery.delivery_status)}`}>
-                        {delivery.delivery_status.charAt(0).toUpperCase() + delivery.delivery_status.slice(1).replace('_', ' ')}
+                      <span
+                        className={`text-xs font-medium px-2 py-1 rounded-full ${getStatusColor(
+                          delivery.delivery_status
+                        )}`}
+                      >
+                        {delivery.delivery_status.charAt(0).toUpperCase() +
+                          delivery.delivery_status.slice(1).replace("_", " ")}
                       </span>
                     </div>
                     <div className="text-sm text-slate-800">
-                      {delivery.delivery_cost !== null ? `${delivery.delivery_cost} Ksh` : "N/A"}
+                      {delivery.delivery_cost ? `${delivery.delivery_cost} Ksh` : "N/A"}
                     </div>
                   </div>
 
@@ -219,25 +337,46 @@ const Deliveries: React.FC = () => {
                   <div className="text-xs text-slate-500 text-right">
                     Created: {new Date(delivery.created_at).toLocaleDateString()}
                     {delivery.delivered_at && (
-                      <p className="text-emerald-600">Delivered: {new Date(delivery.delivered_at).toLocaleDateString()}</p>
+                      <p className="text-emerald-600">
+                        Delivered: {new Date(delivery.delivered_at).toLocaleDateString()}
+                      </p>
                     )}
                   </div>
 
-                  {/* Edit Button */}
-                  <button
-                    onClick={() => setEditDelivery(delivery)}
-                    disabled={isUpdating}
-                    className={`w-full py-1 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg mt-1 ${isUpdating && editDelivery?.id === delivery.id ? "opacity-50 cursor-not-allowed" : "hover:bg-emerald-600 transition-all duration-200"}`}
-                  >
-                    {isUpdating && editDelivery?.id === delivery.id ? "Updating..." : "Edit"}
-                  </button>
+                  {/* Action Buttons */}
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => setEditDelivery(delivery)}
+                      disabled={isUpdating}
+                      className={`flex-1 py-1 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg ${
+                        isUpdating && editDelivery?.id === delivery.id
+                          ? "opacity-50 cursor-not-allowed"
+                          : "hover:bg-emerald-600 transition-all duration-200"
+                      }`}
+                    >
+                      {isUpdating && editDelivery?.id === delivery.id ? "Updating..." : "Edit"}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(delivery.id)}
+                      disabled={isDeleting}
+                      className={`flex-1 py-1 bg-gradient-to-r from-rose-500 to-red-500 text-white rounded-lg ${
+                        isDeleting
+                          ? "opacity-50 cursor-not-allowed"
+                          : "hover:bg-rose-600 transition-all duration-200"
+                      }`}
+                    >
+                      {isDeleting ? "Deleting..." : "Delete"}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Edit Modal */}
                 {editDelivery?.id === delivery.id && (
                   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white/90 rounded-xl p-4 w-full max-w-md">
-                      <h3 className="text-lg font-semibold text-slate-800 mb-4">Update Delivery</h3>
+                      <h3 className="text-lg font-semibold text-slate-800 mb-4">
+                        Update Delivery
+                      </h3>
                       <form onSubmit={handleUpdate} className="space-y-4">
                         <div>
                           <label className="block text-sm font-medium text-slate-700">
@@ -248,7 +387,11 @@ const Deliveries: React.FC = () => {
                             onChange={(e) =>
                               setEditDelivery({
                                 ...editDelivery,
-                                delivery_status: e.target.value as "pending" | "in_transit" | "delivered" | "cancelled",
+                                delivery_status: e.target.value as
+                                  | "pending"
+                                  | "in_transit"
+                                  | "delivered"
+                                  | "cancelled",
                               })
                             }
                             className="w-full px-3 py-2 bg-white/80 text-slate-800 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -265,12 +408,12 @@ const Deliveries: React.FC = () => {
                             Cost (Ksh)
                           </label>
                           <input
-                            type="number"
+                            type="text"
                             value={editDelivery.delivery_cost || ""}
                             onChange={(e) =>
                               setEditDelivery({
                                 ...editDelivery,
-                                delivery_cost: e.target.value ? parseFloat(e.target.value) : null,
+                                delivery_cost: e.target.value || "",
                               })
                             }
                             className="w-full px-3 py-2 bg-white/80 text-slate-800 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -282,7 +425,11 @@ const Deliveries: React.FC = () => {
                           <button
                             type="submit"
                             disabled={isUpdating}
-                            className={`flex-1 py-2 bg-orange-500 text-white rounded-lg ${isUpdating ? "opacity-50 cursor-not-allowed" : "hover:bg-orange-600 transition-all"}`}
+                            className={`flex-1 py-2 bg-orange-500 text-white rounded-lg ${
+                              isUpdating
+                                ? "opacity-50 cursor-not-allowed"
+                                : "hover:bg-orange-600 transition-all"
+                            }`}
                           >
                             Save
                           </button>
@@ -303,87 +450,191 @@ const Deliveries: React.FC = () => {
           )}
         </div>
 
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row justify-between items-center mt-4 space-y-2 sm:space-y-0">
+            <div className="text-sm text-slate-600">
+              Showing {offset + 1} - {Math.min(offset + PAGE_SIZE, totalCount)} of {totalCount} deliveries
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => handlePageChange(offset - PAGE_SIZE)}
+                disabled={offset === 0 || isFetching}
+                className={`px-4 py-2 rounded-lg ${
+                  offset === 0 || isFetching
+                    ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                    : "bg-white/70 text-slate-700 border border-white/50 hover:bg-orange-100"
+                }`}
+              >
+                Previous
+              </button>
+              {[...Array(totalPages)].map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handlePageChange(idx * PAGE_SIZE)}
+                  className={`px-4 py-2 rounded-lg ${
+                    currentPage === idx + 1
+                      ? "bg-orange-500 text-white"
+                      : "bg-white/70 text-slate-700 border border-white/50 hover:bg-orange-100"
+                  }`}
+                >
+                  {idx + 1}
+                </button>
+              ))}
+              <button
+                onClick={() => handlePageChange(offset + PAGE_SIZE)}
+                disabled={offset + PAGE_SIZE >= totalCount || isFetching}
+                className={`px-4 py-2 rounded-lg ${
+                  offset + PAGE_SIZE >= totalCount || isFetching
+                    ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                    : "bg-white/70 text-slate-700 border border-white/50 hover:bg-orange-100"
+                }`}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Create Delivery Modal */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white/90 rounded-xl p-4 w-full max-w-md overflow-y-auto max-h-[90vh]">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-slate-800">Add New Delivery</h2>
-                <button onClick={() => setIsModalOpen(false)} className="text-slate-500 hover:text-slate-700">×</button>
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="text-slate-500 hover:text-slate-700"
+                >
+                  ×
+                </button>
               </div>
               <form onSubmit={handleCreate} className="space-y-2">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700">Customer Name *</label>
+                    <label className="block text-sm font-medium text-slate-700">
+                      Customer Name *
+                    </label>
                     <input
                       type="text"
                       value={newDelivery.customer_name || ""}
-                      onChange={(e) => setNewDelivery({ ...newDelivery, customer_name: e.target.value })}
+                      onChange={(e) =>
+                        setNewDelivery({
+                          ...newDelivery,
+                          customer_name: e.target.value,
+                        })
+                      }
                       className="w-full px-3 py-1 bg-white/80 text-slate-800 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                       required
                       disabled={isCreating}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700">Phone *</label>
+                    <label className="block text-sm font-medium text-slate-700">
+                      Phone *
+                    </label>
                     <input
                       type="text"
                       value={newDelivery.customer_phone || ""}
-                      onChange={(e) => setNewDelivery({ ...newDelivery, customer_phone: e.target.value })}
+                      onChange={(e) =>
+                        setNewDelivery({
+                          ...newDelivery,
+                          customer_phone: e.target.value,
+                        })
+                      }
                       className="w-full px-3 py-1 bg-white/80 text-slate-800 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                       required
                       disabled={isCreating}
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-slate-700">Address *</label>
+                    <label className="block text-sm font-medium text-slate-700">
+                      Address *
+                    </label>
                     <input
                       type="text"
                       value={newDelivery.delivery_address || ""}
-                      onChange={(e) => setNewDelivery({ ...newDelivery, delivery_address: e.target.value })}
+                      onChange={(e) =>
+                        setNewDelivery({
+                          ...newDelivery,
+                          delivery_address: e.target.value,
+                        })
+                      }
                       className="w-full px-3 py-1 bg-white/80 text-slate-800 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                       required
                       disabled={isCreating}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700">Postal Code *</label>
+                    <label className="block text-sm font-medium text-slate-700">
+                      Postal Code *
+                    </label>
                     <input
                       type="text"
                       value={newDelivery.delivery_postal_code || ""}
-                      onChange={(e) => setNewDelivery({ ...newDelivery, delivery_postal_code: e.target.value })}
+                      onChange={(e) =>
+                        setNewDelivery({
+                          ...newDelivery,
+                          delivery_postal_code: e.target.value,
+                        })
+                      }
                       className="w-full px-3 py-1 bg-white/80 text-slate-800 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                       required
                       disabled={isCreating}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700">City *</label>
+                    <label className="block text-sm font-medium text-slate-700">
+                      City *
+                    </label>
                     <input
                       type="text"
                       value={newDelivery.delivery_city || ""}
-                      onChange={(e) => setNewDelivery({ ...newDelivery, delivery_city: e.target.value })}
+                      onChange={(e) =>
+                        setNewDelivery({
+                          ...newDelivery,
+                          delivery_city: e.target.value,
+                        })
+                      }
                       className="w-full px-3 py-1 bg-white/80 text-slate-800 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                       required
                       disabled={isCreating}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700">Cost (Ksh)</label>
+                    <label className="block text-sm font-medium text-slate-700">
+                      Cost (Ksh)
+                    </label>
                     <input
-                      type="number"
+                      type="text"
                       value={newDelivery.delivery_cost || ""}
-                      onChange={(e) => setNewDelivery({ ...newDelivery, delivery_cost: e.target.value ? parseFloat(e.target.value) : null })}
+                      onChange={(e) =>
+                        setNewDelivery({
+                          ...newDelivery,
+                          delivery_cost: e.target.value || "",
+                        })
+                      }
                       className="w-full px-3 py-1 bg-white/80 text-slate-800 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                       placeholder="Optional"
                       disabled={isCreating}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700">Status</label>
+                    <label className="block text-sm font-medium text-slate-700">
+                      Status
+                    </label>
                     <select
                       value={newDelivery.delivery_status || "pending"}
-                      onChange={(e) => setNewDelivery({ ...newDelivery, delivery_status: e.target.value as "pending" | "in_transit" | "delivered" | "cancelled" })}
+                      onChange={(e) =>
+                        setNewDelivery({
+                          ...newDelivery,
+                          delivery_status: e.target.value as
+                            | "pending"
+                            | "in_transit"
+                            | "delivered"
+                            | "cancelled",
+                        })
+                      }
                       className="w-full px-3 py-1 bg-white/80 text-slate-800 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                       disabled={isCreating}
                     >
@@ -398,7 +649,11 @@ const Deliveries: React.FC = () => {
                   <button
                     type="submit"
                     disabled={isCreating}
-                    className={`flex-1 py-2 bg-orange-500 text-white rounded-lg ${isCreating ? "opacity-50 cursor-not-allowed" : "hover:bg-orange-600 transition-all"}`}
+                    className={`flex-1 py-2 bg-orange-500 text-white rounded-lg ${
+                      isCreating
+                        ? "opacity-50 cursor-not-allowed"
+                        : "hover:bg-orange-600 transition-all"
+                    }`}
                   >
                     {isCreating ? "Creating..." : "Create"}
                   </button>
