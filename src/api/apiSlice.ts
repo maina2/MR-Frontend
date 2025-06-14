@@ -2,7 +2,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { Delivery } from '../types/Delivery';
 import type { PaginatedDeliveries } from '../types/Delivery';
 import type { PaginatedCustomers } from '../types/Customer';
-import type { Payment } from '../types/Payment';
+import type { PaginatedPayments } from '../types/Payment';
 import type { Settings } from '../types/Settings';
 import type { User } from '../types/User';
 // Basic baseQuery setup with token handling
@@ -167,8 +167,14 @@ export const apiSlice = createApi({
       providesTags: ['Customers'],
     }),
     // Payment endpoints
-    getPayments: builder.query<Payment[], void>({
-      query: () => 'payments/',
+    getPayments: builder.query<
+      PaginatedPayments,
+      { limit?: number; offset?: number; search?: string }
+    >({
+      query: ({ limit = 12, offset = 0, search }) => ({
+        url: 'payments/',
+        params: { limit, offset, ...(search && { search }) },
+      }),
       providesTags: ['Payments'],
     }),
         // Settings endpoints

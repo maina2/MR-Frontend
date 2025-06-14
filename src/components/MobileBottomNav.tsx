@@ -1,12 +1,12 @@
-import { FiHome, FiPackage, FiTruck, FiDollarSign, FiUsers } from 'react-icons/fi'
+import { FiHome, FiTruck, FiDollarSign, FiUsers, FiBarChart2 } from 'react-icons/fi'
 import { NavLink } from 'react-router-dom'
 
 const navItems = [
-  { to: '/', icon: FiHome, label: 'Home' },
-  { to: '/orders', icon: FiPackage, label: 'Orders' },
   { to: '/deliveries', icon: FiTruck, label: 'Delivery' },
-  { to: '/payments', icon: FiDollarSign, label: 'Payments' },
   { to: '/customers', icon: FiUsers, label: 'Customers' },
+  { to: '/', icon: FiHome, label: 'Home' },
+  { to: '/payments', icon: FiDollarSign, label: 'Payments' },
+  { to: '/reports', icon: FiBarChart2, label: 'Reports' },
 ]
 
 export const MobileBottomNav = () => {
