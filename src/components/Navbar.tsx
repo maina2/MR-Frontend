@@ -1,8 +1,7 @@
 import { FiSearch, FiUser, FiX, FiLogOut } from 'react-icons/fi';
 import { useCallback, useState, useEffect, useRef } from 'react';
-import { ModernRiftLogo } from './ModernRiftLogo';
 import { useNavigate } from 'react-router-dom';
-import { useGetGlobalSearchQuery } from '../api/apiSlice';
+import { useGetGlobalSearchQuery, useGetBusinessDetailsQuery } from '../api/apiSlice';
 import SearchResults from './SearchResults';
 import toast from 'react-hot-toast';
 import { debounce } from 'lodash';
@@ -18,6 +17,9 @@ export const Navbar = ({ onMenuClick }: NavbarProps) => {
   const searchRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
+  // Fetch BusinessDetails for logo
+  const { data: businessDetails, isLoading: isLogoLoading, isError: isLogoError } = useGetBusinessDetailsQuery();
+
   const { data: searchData, isLoading, isError, error } = useGetGlobalSearchQuery(
     { q: searchQuery },
     { skip: !searchQuery || searchQuery.trim().length < 2 }
@@ -30,6 +32,12 @@ export const Navbar = ({ onMenuClick }: NavbarProps) => {
       toast.error(errorMessage);
     }
   }, [isError, error]);
+
+  useEffect(() => {
+    if (isLogoError) {
+      toast.error('Failed to load business logo.');
+    }
+  }, [isLogoError]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -66,16 +74,25 @@ export const Navbar = ({ onMenuClick }: NavbarProps) => {
     navigate('/profile');
   }, [navigate]);
 
+  // Default logo URL if backend fetch fails or logo is null
+  const defaultLogoUrl = 'https://res.cloudinary.com/duknvsch4/image/upload/xtm4zttkdsvfjnxbkow7';
+  const logoUrl = businessDetails?.logo || defaultLogoUrl;
+
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
       <div className="h-14 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-full">
           <div className="flex items-center gap-3">
             <div className="flex items-center">
-              <ModernRiftLogo className="h-8 transition-transform duration-300 hover:scale-105" />
-              <span className="ml-2 text-lg font-bold text-gray-800 hidden sm:block">
-                Modern Rift
-              </span>
+              {isLogoLoading ? (
+                <div className="h-12 w-12 animate-pulse bg-gray-200 rounded-full" />
+              ) : (
+                <img
+                  src={logoUrl}
+                  alt="Company Logo"
+                  className="h-12 w-auto max-h-12 object-contain transition-transform duration-300 hover:scale-105"
+                />
+              )}
             </div>
           </div>
 
