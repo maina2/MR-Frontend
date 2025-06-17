@@ -8,7 +8,7 @@ import {
 import type { Delivery } from "../types/Delivery";
 import toast from "react-hot-toast";
 
-const PAGE_SIZE = 12; // Matches DRF PAGE_SIZE
+const PAGE_SIZE = 12;
 
 const Deliveries: React.FC = () => {
   const [offset, setOffset] = useState(0);
@@ -132,19 +132,6 @@ const Deliveries: React.FC = () => {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "delivered":
-        return "✓";
-      case "in_transit":
-        return "🚚";
-      case "cancelled":
-        return "✕";
-      default:
-        return "⏳";
-    }
-  };
-
   if (isLoadingDeliveries) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
@@ -193,7 +180,7 @@ const Deliveries: React.FC = () => {
         </div>
 
         {/* Status Filters */}
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-3">
           {[
             { label: "All", value: "all" },
             { label: "Pending", value: "pending" },
@@ -212,7 +199,7 @@ const Deliveries: React.FC = () => {
                     | "delivered"
                     | "cancelled"
                 );
-                setOffset(0); // Reset to first page on filter change
+                setOffset(0);
               }}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
                 statusFilter === filter.value
@@ -226,7 +213,7 @@ const Deliveries: React.FC = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
           {[
             { label: "Total", count: totalCount, color: "blue" },
             {
@@ -283,68 +270,54 @@ const Deliveries: React.FC = () => {
             deliveries.map((delivery) => (
               <div
                 key={delivery.id}
-                className="bg-white/80 rounded-xl p-2 border border-white/60 shadow-sm hover:shadow-md transition-all duration-200 group"
+                className="bg-white/80 rounded-xl p-4 border border-white/60 shadow-sm hover:shadow-md transition-all duration-200"
               >
-                <div className="grid grid-cols-1 gap-1">
-                  {/* Parcel & Customer Info */}
-                  <div className="flex items-center space-x-2">
-                    <span className="text-lg">📦</span>
-                    <div>
-                      <p className="text-xs text-slate-500">Parcel ID</p>
-                      <p className="text-slate-800 font-medium">{delivery.parcel_id}</p>
-                    </div>
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-x-4">
+                    <p className="text-sm text-slate-700">
+                      <span className="font-medium">Parcel ID:</span> {delivery.parcel_id}
+                    </p>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-lg">👤</span>
-                    <div>
-                      <p className="text-xs text-slate-500">Customer</p>
-                      <p className="text-slate-800">{delivery.customer_name}</p>
-                      <p className="text-xs text-slate-600">{delivery.customer_phone}</p>
-                    </div>
+                  <div className="grid grid-cols-2 gap-x-4">
+                    <p className="text-sm text-slate-700">
+                      <span className="font-medium">Customer Name:</span> {delivery.customer_name}
+                    </p>
                   </div>
-
-                  {/* Address Info */}
-                  <div className="flex items-start space-x-2">
-                    <span className="text-lg mt-1">📍</span>
-                    <div>
-                      <p className="text-xs text-slate-500">Address</p>
-                      <p className="text-slate-700 text-sm">{delivery.delivery_address}</p>
-                      <p className="text-xs text-slate-600">
-                        {delivery.delivery_city}, {delivery.delivery_postal_code}
+                  <div className="grid grid-cols-2 gap-x-4">
+                    <p className="text-sm text-slate-700">
+                      <span className="font-medium">Delivery Address:</span> {delivery.delivery_address}
+                    </p>
+                    <p className="text-sm text-slate-700">
+                      <span className="font-medium">City:</span> {delivery.delivery_city}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4">
+                    <p className="text-sm text-slate-700">
+                      <span className="font-medium">Created At:</span> {new Date(delivery.created_at).toLocaleDateString()}
+                    </p>
+                    {delivery.delivered_at && (
+                      <p className="text-sm text-slate-700">
+                        <span className="font-medium">Delivered At:</span> {new Date(delivery.delivered_at).toLocaleDateString()}
                       </p>
-                    </div>
+                    )}
                   </div>
-
-                  {/* Status & Cost */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-1">
-                      <span className="text-lg">{getStatusIcon(delivery.delivery_status)}</span>
+                  <div className="grid grid-cols-2 gap-x-4">
+                    <p className="text-sm text-slate-700">
+                      <span className="font-medium">Delivery Cost:</span> {delivery.delivery_cost ? `${delivery.delivery_cost} Ksh` : "N/A"}
+                    </p>
+                    <p className="text-sm">
+                      <span className="font-medium">Status:</span>{" "}
                       <span
-                        className={`text-xs font-medium px-2 py-1 rounded-full ${getStatusColor(
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
                           delivery.delivery_status
                         )}`}
                       >
                         {delivery.delivery_status.charAt(0).toUpperCase() +
                           delivery.delivery_status.slice(1).replace("_", " ")}
                       </span>
-                    </div>
-                    <div className="text-sm text-slate-800">
-                      {delivery.delivery_cost ? `${delivery.delivery_cost} Ksh` : "N/A"}
-                    </div>
+                    </p>
                   </div>
-
-                  {/* Date Info */}
-                  <div className="text-xs text-slate-500 text-right">
-                    Created: {new Date(delivery.created_at).toLocaleDateString()}
-                    {delivery.delivered_at && (
-                      <p className="text-emerald-600">
-                        Delivered: {new Date(delivery.delivered_at).toLocaleDateString()}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex space-x-2">
+                  <div className="flex space-x-2 pt-2">
                     <button
                       onClick={() => setEditDelivery(delivery)}
                       disabled={isUpdating}
