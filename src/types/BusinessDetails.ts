@@ -1,4 +1,4 @@
-export type Settings = {
+export type BusinessDetails = {
   id: number;
   name: string | null;
   pin: string | null;

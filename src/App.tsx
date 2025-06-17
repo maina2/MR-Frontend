@@ -5,10 +5,11 @@ import { MainLayout } from "./layouts/MainLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import Deliveries from "./pages/Deliveries";
+import Delivery from "./pages/Delivery";
 import Payments from "./pages/Payments";
 import Customers from "./pages/Customers";
 import Reports from "./pages/Reports";
-import Settings from "./pages/Settings";
+import BusinessDetailsPage from "./pages/BusinessDetailsPage";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -31,10 +32,11 @@ function App() {
             {/* Main routes */}
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="deliveries" element={<Deliveries />} />
+            <Route path="deliveries/:id" element={<Delivery />} />
             <Route path="payments" element={<Payments />} />
             <Route path="customers" element={<Customers />} />
             <Route path="reports" element={<Reports />} />
-            <Route path="settings" element={<Settings />} />
+            <Route path="business-details" element={<BusinessDetailsPage />} />
             <Route path="profile" element={<UserProfile />} />
           </Route>
         </Route>

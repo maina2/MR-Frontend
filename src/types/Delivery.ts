@@ -7,7 +7,7 @@ export type Delivery = {
   delivery_postal_code: string | null;
   delivery_city: string;
   delivery_status: 'pending' | 'in_transit' | 'delivered' | 'cancelled';
-  delivery_cost: string; 
+  delivery_cost: string | null;
   created_at: string;
   delivered_at: string | null;
 };

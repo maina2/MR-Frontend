@@ -4,7 +4,8 @@ import type { PaginatedDeliveries } from "../types/Delivery";
 import type { PaginatedCustomers } from "../types/Customer";
 import type { PaginatedPayments } from "../types/Payment";
 import type { PaginatedReports } from "../types/Report";
-import type { Settings } from "../types/Settings";
+import type { SearchResponse } from "../types/Search";
+import type { BusinessDetails } from "../types/BusinessDetails";
 import type { User } from "../types/User";
 
 // Basic baseQuery setup with token handling
@@ -70,7 +71,7 @@ export const apiSlice = createApi({
     "Deliveries",
     "Customers",
     "Payments",
-    "Settings",
+    "BusinessDetails",
     "Reports",
   ],
   endpoints: (builder) => ({
@@ -135,6 +136,19 @@ export const apiSlice = createApi({
     }),
 
     // Delivery endpoints
+    getDelivery: builder.query<Delivery, number>({
+      query: (id) => `delivery/${id}/`,
+      transformResponse: (response: { data?: Delivery; error?: string }) => {
+        if ("error" in response) {
+          throw new Error(response.error || "Failed to fetch delivery");
+        }
+        if (!response.data) {
+          throw new Error("No delivery data returned");
+        }
+        return response.data;
+      },
+      providesTags: ["Deliveries"],
+    }),
     getDeliveries: builder.query<
       PaginatedDeliveries,
       { limit?: number; offset?: number; delivery_status?: string }
@@ -194,17 +208,26 @@ export const apiSlice = createApi({
       providesTags: ["Payments"],
     }),
     // Settings endpoints
-    getSettings: builder.query<Settings, void>({
-      query: () => "business-details/",
-      providesTags: ["Settings"],
+    getBusinessDetails: builder.query<BusinessDetails | null, void>({
+      query: () => 'business-details/',
+      transformResponse: (response: { data: BusinessDetails | null }) => response.data,
+      providesTags: ['BusinessDetails'],
     }),
-    updateSettings: builder.mutation<Settings, Partial<Settings>>({
-      query: (data) => ({
-        url: "business-details/",
-        method: "POST",
-        body: data,
+    createBusinessDetails: builder.mutation<BusinessDetails, FormData>({
+      query: (formData) => ({
+        url: 'business-details/',
+        method: 'POST',
+        body: formData,
       }),
-      invalidatesTags: ["Settings"],
+      invalidatesTags: ['BusinessDetails'],
+    }),
+    updateBusinessDetails: builder.mutation<BusinessDetails, FormData>({
+      query: (formData) => ({
+        url: 'business-details/',
+        method: 'PATCH',
+        body: formData,
+      }),
+      invalidatesTags: ['BusinessDetails'],
     }),
     // Reports endpoints
     getReports: builder.query<
@@ -217,6 +240,13 @@ export const apiSlice = createApi({
       }),
       providesTags: ["Reports"],
     }),
+    getGlobalSearch: builder.query<SearchResponse, { q: string }>({
+      query: ({ q }) => ({
+        url: "search/",
+        params: { q: q.trim() || undefined },
+      }),
+      providesTags: ["Deliveries"],
+    }),
   }),
 });
 
@@ -226,13 +256,16 @@ export const {
   useLogoutMutation,
   useGetUserQuery,
   useUpdateUserMutation,
+  useGetDeliveryQuery,
   useGetDeliveriesQuery,
   useCreateDeliveryMutation,
   useUpdateDeliveryMutation,
   useDeleteDeliveryMutation,
   useGetCustomersQuery,
   useGetPaymentsQuery,
-  useGetSettingsQuery,
-  useUpdateSettingsMutation,
+  useGetBusinessDetailsQuery,
+  useCreateBusinessDetailsMutation,
+  useUpdateBusinessDetailsMutation,
   useGetReportsQuery,
+  useGetGlobalSearchQuery,
 } = apiSlice;
