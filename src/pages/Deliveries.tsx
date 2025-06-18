@@ -293,11 +293,13 @@ const Deliveries: React.FC = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-x-4">
                     <p className="text-sm text-slate-700">
-                      <span className="font-medium">Created At:</span> {new Date(delivery.created_at).toLocaleDateString()}
+                      <span className="font-medium">Created At:</span> {new Date(delivery.created_at).toLocaleDateString('en-US', {  month: '2-digit', day: '2-digit', year: '2-digit'}).replace(',', '')} 
+
                     </p>
+                    {/* // Delivery date format fixed// */}
                     {delivery.delivered_at && (
                       <p className="text-sm text-slate-700">
-                        <span className="font-medium">Delivered At:</span> {new Date(delivery.delivered_at).toLocaleDateString()}
+                        <span className="font-medium">Delivered At:</span> {new Date(delivery.delivered_at).toLocaleDateString('en-US', {  month: '2-digit', day: '2-digit', year: '2-digit'}).replace(',', '')} 
                       </p>
                     )}
                   </div>

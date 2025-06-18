@@ -211,8 +211,8 @@ const Payments: React.FC = () => {
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-500">
                       {payment.delivered_at
-                        ? new Date(payment.delivered_at).toLocaleDateString()
-                        : "N/A"}
+                        ? new Date(payment.delivered_at).toLocaleString('en-US', { month: '2-digit',day: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).replace(',', '')
+                        : "Not Yet"}
                     </td>
                   </tr>
                 ))

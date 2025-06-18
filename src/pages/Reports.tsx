@@ -133,7 +133,8 @@ const Reports: React.FC = () => {
                     <td className="px-4 py-3 text-sm text-gray-800">{report.delivery_city}</td>
                     <td className="px-4 py-3 text-sm text-gray-500">{new Date(report.created_at).toLocaleDateString()}</td>
                     <td className="px-4 py-3 text-sm text-gray-500">
-                      {report.delivered_at ? new Date(report.delivered_at).toLocaleDateString() : 'N/A'}
+                      {report.delivered_at ? new Date(report.delivered_at).toLocaleString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).replace(',', '')
+                        : "Not Yet"}
                     </td>
                   </tr>
                 ))
