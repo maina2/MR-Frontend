@@ -3,6 +3,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRegisterMutation, useLoginMutation, useLogoutMutation, useGetUserQuery } from '../api/apiSlice';
 import type { AuthContextType, User } from '../types/users';
+import toast from 'react-hot-toast';
 
 // Create the context with a default value
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -93,14 +94,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       setUser(null);
+      toast.success('Logged out successfully!');
       navigate('/login');
-    } catch (_) {
-      setError('An error occurred during logout.');
+    } catch (err) {
+      setError('An error occurred during logout. Please try again.');
+      console.error('Logout error:', err);
     } finally {
       setLoading(false);
     }
   };
-
   const isAuthenticated = !!user;
 
   return React.createElement(

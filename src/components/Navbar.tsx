@@ -1,13 +1,14 @@
-import { FiSearch, FiUser, FiX, FiLogOut } from 'react-icons/fi';
+import { FiSearch, FiUser, FiX, FiLogOut, FiMenu } from 'react-icons/fi'; // Added FiMenu
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGetGlobalSearchQuery, useGetBusinessDetailsQuery } from '../api/apiSlice';
 import SearchResults from './SearchResults';
 import toast from 'react-hot-toast';
 import { debounce } from 'lodash';
+import { useAuth } from '../store/authContext';
 
 interface NavbarProps {
-  onMenuClick: () => void;
+  onMenuClick: () => void; // Restored prop
 }
 
 export const Navbar = ({ onMenuClick }: NavbarProps) => {
@@ -16,6 +17,7 @@ export const Navbar = ({ onMenuClick }: NavbarProps) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   // Fetch BusinessDetails for logo
   const { data: businessDetails, isLoading: isLogoLoading, isError: isLogoError } = useGetBusinessDetailsQuery();
@@ -65,8 +67,8 @@ export const Navbar = ({ onMenuClick }: NavbarProps) => {
     setShowMobileSearch(false);
   };
 
-  const handleLogout = () => {
-    console.log('Logout clicked');
+  const handleLogout = async () => {
+    await logout(); 
   };
 
   const handleProfileClick = useCallback(() => {
@@ -74,9 +76,23 @@ export const Navbar = ({ onMenuClick }: NavbarProps) => {
     navigate('/profile');
   }, [navigate]);
 
-  // Default logo URL if backend fetch fails or logo is null
+  // Function to transform Cloudinary URL for navbar logo
+  const getNavbarLogo = (logoUrl: string) => {
+if (!logoUrl) return undefined;    
+    if (logoUrl.includes('res.cloudinary.com')) {
+      const transformedUrl = logoUrl.replace(
+        '/upload/',
+        '/upload/w_160,h_48,c_fit,f_auto,q_auto/'
+      );
+      return transformedUrl;
+    }
+    
+    return logoUrl;
+  };
+
   const defaultLogoUrl = 'https://res.cloudinary.com/duknvsch4/image/upload/xtm4zttkdsvfjnxbkow7';
-  const logoUrl = businessDetails?.logo || defaultLogoUrl;
+  const rawLogoUrl = businessDetails?.logo || defaultLogoUrl;
+  const logoUrl = getNavbarLogo(rawLogoUrl) || defaultLogoUrl;
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
@@ -85,15 +101,28 @@ export const Navbar = ({ onMenuClick }: NavbarProps) => {
           <div className="flex items-center gap-3">
             <div className="flex items-center">
               {isLogoLoading ? (
-                <div className="h-12 w-12 animate-pulse bg-gray-200 rounded-full" />
+                <div className="h-12 w-20 animate-pulse bg-gray-200 rounded-lg" />
               ) : (
                 <img
                   src={logoUrl}
                   alt="Company Logo"
-                  className="h-12 w-auto max-h-12 object-contain transition-transform duration-300 hover:scale-105"
+                  className="h-12 w-auto max-w-[160px] object-contain transition-transform duration-300 hover:scale-105"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    if (target.src !== rawLogoUrl) {
+                      target.src = rawLogoUrl;
+                    }
+                  }}
                 />
               )}
             </div>
+            {/* Hamburger menu for mobile */}
+            <button
+              onClick={onMenuClick}
+              className="md:hidden p-2 rounded-lg text-gray-600 hover:text-orange-500 hover:bg-gray-50 transition-all duration-200"
+            >
+              <FiMenu className="h-6 w-6" />
+            </button>
           </div>
 
           <div className="hidden md:flex flex-1 max-w-lg mx-8 relative" ref={searchRef}>

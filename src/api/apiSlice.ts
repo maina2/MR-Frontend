@@ -7,6 +7,7 @@ import type { PaginatedReports } from "../types/Report";
 import type { SearchResponse } from "../types/Search";
 import type { BusinessDetails } from "../types/BusinessDetails";
 import type { User } from "../types/User";
+import type { Stats } from "../types/Stats";
 
 // Basic baseQuery setup with token handling
 const baseQuery = fetchBaseQuery({
@@ -20,13 +21,14 @@ const baseQuery = fetchBaseQuery({
   },
 });
 
-// Custom baseQuery with token refresh logic
+// Custom baseQuery with enhanced token refresh logic
 const baseQueryWithReauth = async (args: any, api: any, extraOptions: any) => {
   let result = await baseQuery(args, api, extraOptions);
 
   if (result.error && result.error.status === 401) {
     const refreshToken = localStorage.getItem("refreshToken");
     if (refreshToken) {
+      // Attempt to refresh the token
       const refreshResult = await baseQuery(
         {
           url: "refresh/",
@@ -45,20 +47,24 @@ const baseQueryWithReauth = async (args: any, api: any, extraOptions: any) => {
         const newAccessToken = refreshData.access;
         const newRefreshToken = refreshData.refresh || refreshToken;
 
+        // Update tokens in localStorage
         localStorage.setItem("accessToken", newAccessToken);
-        localStorage.setItem("refreshToken", newRefreshToken);
+        if (newRefreshToken) {
+          localStorage.setItem("refreshToken", newRefreshToken);
+        }
 
-        // Retry the original query with the new token
+        // Retry the original query with the new access token
         result = await baseQuery(args, api, extraOptions);
       } else {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
+        // Refresh failed, but keep existing tokens for potential manual retry
+        console.warn("Token refresh failed, keeping existing tokens for now.");
+        // Optionally, notify the user to re-login after a few failed attempts
       }
     } else {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
+      console.warn("No refresh token available, authentication required.");
     }
   }
+
   return result;
 };
 
@@ -247,6 +253,11 @@ export const apiSlice = createApi({
       }),
       providesTags: ["Deliveries"],
     }),
+    // Dashboard stats endpoint
+    getDashboardStats: builder.query<Stats, void>({
+      query: () => 'dashboard/stats/',
+      providesTags: ['Deliveries', 'Customers', 'Payments', 'Reports'],
+    }),
   }),
 });
 
@@ -268,4 +279,5 @@ export const {
   useUpdateBusinessDetailsMutation,
   useGetReportsQuery,
   useGetGlobalSearchQuery,
+  useGetDashboardStatsQuery,
 } = apiSlice;

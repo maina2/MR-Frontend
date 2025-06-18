@@ -5,7 +5,7 @@ import { MainLayout } from "./layouts/MainLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import Deliveries from "./pages/Deliveries";
-import Delivery from "./pages/Delivery";
+import DeliveryPage from "./pages/DeliveryPage";
 import Payments from "./pages/Payments";
 import Customers from "./pages/Customers";
 import Reports from "./pages/Reports";
@@ -32,7 +32,7 @@ function App() {
             {/* Main routes */}
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="deliveries" element={<Deliveries />} />
-            <Route path="deliveries/:id" element={<Delivery />} />
+            <Route path="deliveries/:id" element={<DeliveryPage />} />
             <Route path="payments" element={<Payments />} />
             <Route path="customers" element={<Customers />} />
             <Route path="reports" element={<Reports />} />

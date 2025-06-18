@@ -8,7 +8,7 @@ import {
 import type { Delivery } from "../types/Delivery";
 import toast from "react-hot-toast";
 
-const Delivery: React.FC = () => {
+const DeliveryPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [editDelivery, setEditDelivery] = useState<Partial<Delivery> | null>(
@@ -284,4 +284,4 @@ const Delivery: React.FC = () => {
   );
 };
 
-export default Delivery;
+export default DeliveryPage;

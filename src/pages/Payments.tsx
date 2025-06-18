@@ -68,7 +68,6 @@ const Payments: React.FC = () => {
 
   // Pagination window: Show current page ±2, first, last, and ellipses
   const getPageNumbers = () => {
-    const maxPagesToShow = 5; // Show up to 5 page numbers
     const pages: (number | string)[] = [];
     const startPage = Math.max(1, currentPage - 2);
     const endPage = Math.min(totalPages, currentPage + 2);

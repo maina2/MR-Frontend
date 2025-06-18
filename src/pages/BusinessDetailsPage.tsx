@@ -41,7 +41,9 @@ const BusinessDetailsPage: React.FC = () => {
     try {
       const data = new FormData();
       Object.entries(formData).forEach(([key, value]) => {
-        if (value !== null) data.append(key, value);
+        if (value !== null && value !== undefined) {
+          data.append(key, String(value));
+        }
       });
       if (logoFile) data.append('logo', logoFile);
 

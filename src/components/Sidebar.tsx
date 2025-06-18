@@ -1,5 +1,6 @@
 import { FiHome, FiTruck, FiDollarSign, FiUsers, FiSettings, FiPieChart, FiChevronLeft, FiLogOut } from 'react-icons/fi'
 import { NavItem } from './NavItem'
+import { useAuth } from '../store/authContext';
 
 type SidebarProps = {
   isOpen: boolean
@@ -7,11 +8,11 @@ type SidebarProps = {
 }
 
 export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
-  const handleLogout = () => {
-    // Add your logout logic here
-    // For example: clear tokens, redirect to login, etc.
-    console.log('Logout clicked')
-  }
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout(); 
+  };
 
   return (
     <>
