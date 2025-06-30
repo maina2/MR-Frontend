@@ -4,17 +4,33 @@ import {
   useCreateDeliveryMutation,
   useUpdateDeliveryMutation,
   useDeleteDeliveryMutation,
+  useInitiateMpesaPaymentMutation,
 } from "../api/apiSlice";
 import type { Delivery } from "../types/Delivery";
 import toast from "react-hot-toast";
 
 const PAGE_SIZE = 12;
 
+const ROUTES = [
+  "Langata",
+  "Ngong",
+  "Jogoo",
+  "Mombasa",
+  "Thika",
+  "Waiyaki",
+  "Kiambu",
+  "Limuru",
+  "Ardhwings_Kodek",
+  "Lower_Kabete",
+  "Peponi",
+];
+
 const Deliveries: React.FC = () => {
   const [offset, setOffset] = useState(0);
   const [statusFilter, setStatusFilter] = useState<
     "all" | "pending" | "in_transit" | "delivered" | "cancelled"
   >("all");
+  const [payingDeliveries, setPayingDeliveries] = useState<{ [key: number]: boolean }>({});
 
   const {
     data: paginatedDeliveries,
@@ -36,13 +52,14 @@ const Deliveries: React.FC = () => {
   const [createDelivery, { isLoading: isCreating }] = useCreateDeliveryMutation();
   const [updateDelivery, { isLoading: isUpdating }] = useUpdateDeliveryMutation();
   const [deleteDelivery, { isLoading: isDeleting }] = useDeleteDeliveryMutation();
+  const [initiateMpesaPayment] = useInitiateMpesaPaymentMutation();
 
   const [newDelivery, setNewDelivery] = useState<Partial<Delivery>>({
     customer_name: "",
     customer_phone: "",
     delivery_address: "",
-    delivery_postal_code: "",
-    delivery_city: "",
+    delivery_town: "",
+    delivery_route: null,
     delivery_status: "pending",
     delivery_cost: "",
   });
@@ -57,18 +74,21 @@ const Deliveries: React.FC = () => {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createDelivery(newDelivery).unwrap();
+      const createdDelivery = await createDelivery(newDelivery).unwrap();
       setNewDelivery({
         customer_name: "",
         customer_phone: "",
         delivery_address: "",
-        delivery_postal_code: "",
-        delivery_city: "",
+        delivery_town: "",
+        delivery_route: null,
         delivery_status: "pending",
         delivery_cost: "",
       });
       setIsModalOpen(false);
       toast.success("Delivery created successfully!");
+      if (newDelivery.customer_phone && newDelivery.delivery_cost) {
+        await handlePayment(createdDelivery.id);
+      }
     } catch (err: any) {
       const errorMessage =
         err?.data?.detail || "Failed to create delivery. Please try again.";
@@ -82,6 +102,11 @@ const Deliveries: React.FC = () => {
     if (editDelivery?.id) {
       try {
         const dataToSend = {
+          customer_name: editDelivery.customer_name,
+          customer_phone: editDelivery.customer_phone,
+          delivery_address: editDelivery.delivery_address,
+          delivery_town: editDelivery.delivery_town,
+          delivery_route: editDelivery.delivery_route,
           delivery_status: editDelivery.delivery_status,
           delivery_cost: editDelivery.delivery_cost || null,
         };
@@ -112,6 +137,22 @@ const Deliveries: React.FC = () => {
         toast.error(errorMessage);
         console.error("Failed to delete delivery:", err);
       }
+    }
+  };
+
+  const handlePayment = async (deliveryId: number) => {
+    setPayingDeliveries((prev) => ({ ...prev, [deliveryId]: true }));
+    try {
+      const result = await initiateMpesaPayment(deliveryId).unwrap();
+      toast.success("M-Pesa payment initiated! Check your phone.");
+      console.log("Payment initiated:", result);
+    } catch (err: any) {
+      const errorMessage =
+        err?.data?.detail || "Failed to initiate payment. Please try again.";
+      toast.error(errorMessage);
+      console.error("Failed to initiate payment:", err);
+    } finally {
+      setPayingDeliveries((prev) => ({ ...prev, [deliveryId]: false }));
     }
   };
 
@@ -223,14 +264,12 @@ const Deliveries: React.FC = () => {
             },
             {
               label: "In Transit",
-              count: deliveries.filter((d) => d.delivery_status === "in_transit")
-                .length,
+              count: deliveries.filter((d) => d.delivery_status === "in_transit").length,
               color: "amber",
             },
             {
               label: "Delivered",
-              count: deliveries.filter((d) => d.delivery_status === "delivered")
-                .length,
+              count: deliveries.filter((d) => d.delivery_status === "delivered").length,
               color: "emerald",
             },
           ].map((stat, idx) => (
@@ -277,35 +316,50 @@ const Deliveries: React.FC = () => {
                     <p className="text-sm text-slate-700">
                       <span className="font-medium">Parcel ID:</span> {delivery.parcel_id}
                     </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-x-4">
                     <p className="text-sm text-slate-700">
                       <span className="font-medium">Customer Name:</span> {delivery.customer_name}
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-x-4">
                     <p className="text-sm text-slate-700">
-                      <span className="font-medium">Delivery Address:</span> {delivery.delivery_address}
+                      <span className="font-medium">Phone:</span> {delivery.customer_phone}
                     </p>
                     <p className="text-sm text-slate-700">
-                      <span className="font-medium">City:</span> {delivery.delivery_city}
+                      <span className="font-medium">Town:</span> {delivery.delivery_town}
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-x-4">
                     <p className="text-sm text-slate-700">
-                      <span className="font-medium">Created At:</span> {new Date(delivery.created_at).toLocaleDateString('en-US', {  month: '2-digit', day: '2-digit', year: '2-digit'}).replace(',', '')} 
-
+                      <span className="font-medium">Address:</span> {delivery.delivery_address}
                     </p>
-                    {/* // Delivery date format fixed// */}
+                    <p className="text-sm text-slate-700">
+                      <span className="font-medium">Route:</span> {delivery.delivery_route || "Not set"}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4">
+                    <p className="text-sm text-slate-700">
+                      <span className="font-medium">Created At:</span>{" "}
+                      {new Date(delivery.created_at).toLocaleDateString("en-US", {
+                        month: "2-digit",
+                        day: "2-digit",
+                        year: "2-digit",
+                      })}
+                    </p>
                     {delivery.delivered_at && (
                       <p className="text-sm text-slate-700">
-                        <span className="font-medium">Delivered At:</span> {new Date(delivery.delivered_at).toLocaleDateString('en-US', {  month: '2-digit', day: '2-digit', year: '2-digit'}).replace(',', '')} 
+                        <span className="font-medium">Delivered At:</span>{" "}
+                        {new Date(delivery.delivered_at).toLocaleDateString("en-US", {
+                          month: "2-digit",
+                          day: "2-digit",
+                          year: "2-digit",
+                        })}
                       </p>
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-x-4">
                     <p className="text-sm text-slate-700">
-                      <span className="font-medium">Delivery Cost:</span> {delivery.delivery_cost ? `${delivery.delivery_cost} Ksh` : "N/A"}
+                      <span className="font-medium">Cost:</span>{" "}
+                      {delivery.delivery_cost ? `${delivery.delivery_cost} Ksh` : "N/A"}
                     </p>
                     <p className="text-sm">
                       <span className="font-medium">Status:</span>{" "}
@@ -316,6 +370,20 @@ const Deliveries: React.FC = () => {
                       >
                         {delivery.delivery_status.charAt(0).toUpperCase() +
                           delivery.delivery_status.slice(1).replace("_", " ")}
+                      </span>
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4">
+                    <p className="text-sm text-slate-700">
+                      <span className="font-medium">Payment:</span>{" "}
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          delivery.is_paid
+                            ? "bg-green-100 text-green-700 border-green-200"
+                            : "bg-red-100 text-red-700 border-red-200"
+                        }`}
+                      >
+                        {delivery.is_paid ? "Paid" : "Unpaid"}
                       </span>
                     </p>
                   </div>
@@ -342,61 +410,172 @@ const Deliveries: React.FC = () => {
                     >
                       {isDeleting ? "Deleting..." : "Delete"}
                     </button>
+                    <button
+                      onClick={() => handlePayment(delivery.id)}
+                      disabled={payingDeliveries[delivery.id] || delivery.is_paid}
+                      className={`flex-1 py-1 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-lg ${
+                        payingDeliveries[delivery.id] || delivery.is_paid
+                          ? "opacity-50 cursor-not-allowed"
+                          : "hover:bg-blue-600 transition-all duration-200"
+                      }`}
+                    >
+                      {payingDeliveries[delivery.id] ? "Paying..." : "Pay Now"}
+                    </button>
                   </div>
                 </div>
 
                 {/* Edit Modal */}
                 {editDelivery?.id === delivery.id && (
                   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white/90 rounded-xl p-4 w-full max-w-md">
+                    <div className="bg-white/90 rounded-xl p-4 w-full max-w-md overflow-y-auto max-h-[90vh]">
                       <h3 className="text-lg font-semibold text-slate-800 mb-4">
                         Update Delivery
                       </h3>
-                      <form onSubmit={handleUpdate} className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700">
-                            Status
-                          </label>
-                          <select
-                            value={editDelivery.delivery_status || "pending"}
-                            onChange={(e) =>
-                              setEditDelivery({
-                                ...editDelivery,
-                                delivery_status: e.target.value as
-                                  | "pending"
-                                  | "in_transit"
-                                  | "delivered"
-                                  | "cancelled",
-                              })
-                            }
-                            className="w-full px-3 py-2 bg-white/80 text-slate-800 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                            disabled={isUpdating}
-                          >
-                            <option value="pending">Pending</option>
-                            <option value="in_transit">In Transit</option>
-                            <option value="delivered">Delivered</option>
-                            <option value="cancelled">Cancelled</option>
-                          </select>
+                      <form onSubmit={handleUpdate} className="space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700">
+                              Customer Name *
+                            </label>
+                            <input
+                              type="text"
+                              value={editDelivery.customer_name || ""}
+                              onChange={(e) =>
+                                setEditDelivery({
+                                  ...editDelivery,
+                                  customer_name: e.target.value,
+                                })
+                              }
+                              className="w-full px-3 py-1 bg-white/80 text-slate-800 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                              required
+                              disabled={isUpdating}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700">
+                              Phone *
+                            </label>
+                            <input
+                              type="text"
+                              value={editDelivery.customer_phone || ""}
+                              onChange={(e) =>
+                                setEditDelivery({
+                                  ...editDelivery,
+                                  customer_phone: e.target.value,
+                                })
+                              }
+                              className="w-full px-3 py-1 bg-white/80 text-slate-800 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                              required
+                              disabled={isUpdating}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700">
+                              Address *
+                            </label>
+                            <input
+                              type="text"
+                              value={editDelivery.delivery_address || ""}
+                              onChange={(e) =>
+                                setEditDelivery({
+                                  ...editDelivery,
+                                  delivery_address: e.target.value,
+                                })
+                              }
+                              className="w-full px-3 py-1 bg-white/80 text-slate-800 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                              required
+                              disabled={isUpdating}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700">
+                              Town *
+                            </label>
+                            <input
+                              type="text"
+                              value={editDelivery.delivery_town || ""}
+                              onChange={(e) =>
+                                setEditDelivery({
+                                  ...editDelivery,
+                                  delivery_town: e.target.value,
+                                })
+                              }
+                              className="w-full px-3 py-1 bg-white/80 text-slate-800 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                              required
+                              disabled={isUpdating}
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-slate-700">
+                              Route *
+                            </label>
+                            <div className="grid grid-cols-2 gap-4 max-h-40 overflow-y-auto p-2 bg-white/80 border border-slate-200 rounded-lg">
+                              {ROUTES.map((route) => (
+                                <label key={route} className="flex items-center space-x-2">
+                                  <input
+                                    type="radio"
+                                    name="delivery_route"
+                                    value={route}
+                                    checked={editDelivery.delivery_route === route}
+                                    onChange={(e) =>
+                                      setEditDelivery({
+                                        ...editDelivery,
+                                        delivery_route: e.target.value as Delivery["delivery_route"],
+                                      })
+                                    }
+                                    className="text-orange-500 focus:ring-orange-500"
+                                    disabled={isUpdating}
+                                  />
+                                  <span className="text-sm text-slate-700">{route}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700">
+                              Cost (Ksh)
+                            </label>
+                            <input
+                              type="text"
+                              value={editDelivery.delivery_cost || ""}
+                              onChange={(e) =>
+                                setEditDelivery({
+                                  ...editDelivery,
+                                  delivery_cost: e.target.value || "",
+                                })
+                              }
+                              className="w-full px-3 py-1 bg-white/80 text-slate-800 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                              placeholder="Optional"
+                              disabled={isUpdating}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700">
+                              Status
+                            </label>
+                            <select
+                              value={editDelivery.delivery_status || "pending"}
+                              onChange={(e) =>
+                                setEditDelivery({
+                                  ...editDelivery,
+                                  delivery_status: e.target.value as
+                                    | "pending"
+                                    | "in_transit"
+                                    | "delivered"
+                                    | "cancelled",
+                                })
+                              }
+                              className="w-full px-3 py-1 bg-white/80 text-slate-800 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                              disabled={isUpdating}
+                            >
+                              <option value="pending">Pending</option>
+                              <option value="in_transit">In Transit</option>
+                              <option value="delivered">Delivered</option>
+                              <option value="cancelled">Cancelled</option>
+                            </select>
+                          </div>
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700">
-                            Cost (Ksh)
-                          </label>
-                          <input
-                            type="text"
-                            value={editDelivery.delivery_cost || ""}
-                            onChange={(e) =>
-                              setEditDelivery({
-                                ...editDelivery,
-                                delivery_cost: e.target.value || "",
-                              })
-                            }
-                            className="w-full px-3 py-2 bg-white/80 text-slate-800 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                            placeholder="Enter cost"
-                            disabled={isUpdating}
-                          />
-                        </div>
-                        <div className="flex space-x-2">
+                        <div className="flex space-x-2 pt-2">
                           <button
                             type="submit"
                             disabled={isUpdating}
@@ -407,6 +586,18 @@ const Deliveries: React.FC = () => {
                             }`}
                           >
                             Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handlePayment(editDelivery.id!)}
+                            disabled={payingDeliveries[editDelivery.id!] || editDelivery.is_paid}
+                            className={`flex-1 py-2 bg-blue-500 text-white rounded-lg ${
+                              payingDeliveries[editDelivery.id!] || editDelivery.is_paid
+                                ? "opacity-50 cursor-not-allowed"
+                                : "hover:bg-blue-600 transition-all"
+                            }`}
+                          >
+                            {payingDeliveries[editDelivery.id!] ? "Paying..." : "Pay Now"}
                           </button>
                           <button
                             type="button"
@@ -484,8 +675,8 @@ const Deliveries: React.FC = () => {
                   ×
                 </button>
               </div>
-              <form onSubmit={handleCreate} className="space-y-2">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <form onSubmit={handleCreate} className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-slate-700">
                       Customer Name *
@@ -522,7 +713,7 @@ const Deliveries: React.FC = () => {
                       disabled={isCreating}
                     />
                   </div>
-                  <div className="md:col-span-2">
+                  <div>
                     <label className="block text-sm font-medium text-slate-700">
                       Address *
                     </label>
@@ -542,15 +733,15 @@ const Deliveries: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700">
-                      Postal Code *
+                      Town *
                     </label>
                     <input
                       type="text"
-                      value={newDelivery.delivery_postal_code || ""}
+                      value={newDelivery.delivery_town || ""}
                       onChange={(e) =>
                         setNewDelivery({
                           ...newDelivery,
-                          delivery_postal_code: e.target.value,
+                          delivery_town: e.target.value,
                         })
                       }
                       className="w-full px-3 py-1 bg-white/80 text-slate-800 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -558,23 +749,31 @@ const Deliveries: React.FC = () => {
                       disabled={isCreating}
                     />
                   </div>
-                  <div>
+                  <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-slate-700">
-                      City *
+                      Route *
                     </label>
-                    <input
-                      type="text"
-                      value={newDelivery.delivery_city || ""}
-                      onChange={(e) =>
-                        setNewDelivery({
-                          ...newDelivery,
-                          delivery_city: e.target.value,
-                        })
-                      }
-                      className="w-full px-3 py-1 bg-white/80 text-slate-800 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                      required
-                      disabled={isCreating}
-                    />
+                    <div className="grid grid-cols-2 gap-4 max-h-40 overflow-y-auto p-2 bg-white/80 border border-slate-200 rounded-lg">
+                      {ROUTES.map((route) => (
+                        <label key={route} className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            name="delivery_route"
+                            value={route}
+                            checked={newDelivery.delivery_route === route}
+                            onChange={(e) =>
+                              setNewDelivery({
+                                ...newDelivery,
+                                delivery_route: e.target.value as Delivery["delivery_route"],
+                              })
+                            }
+                            className="text-orange-500 focus:ring-orange-500"
+                            disabled={isCreating}
+                          />
+                          <span className="text-sm text-slate-700">{route}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700">
@@ -620,7 +819,7 @@ const Deliveries: React.FC = () => {
                     </select>
                   </div>
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex space-x-2 pt-2">
                   <button
                     type="submit"
                     disabled={isCreating}

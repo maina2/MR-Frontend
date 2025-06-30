@@ -1,6 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import type { Delivery } from "../types/Delivery";
-import type { PaginatedDeliveries } from "../types/Delivery";
+import type { PaginatedDeliveries ,MpesaTransaction} from "../types/Delivery";
 import type { PaginatedCustomers } from "../types/Customer";
 import type { PaginatedPayments } from "../types/Payment";
 import type { PaginatedReports } from "../types/Report";
@@ -191,6 +191,23 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ["Deliveries"],
     }),
+        initiateMpesaPayment: builder.mutation<MpesaTransaction, number>({
+      query: (deliveryId) => ({
+        url: `delivery/${deliveryId}/pay/`,
+        method: "POST",
+        body: {},
+      }),
+      transformResponse: (response: { data?: MpesaTransaction; error?: string }) => {
+        if ("error" in response) {
+          throw new Error(response.error || "Failed to initiate M-Pesa payment");
+        }
+        if (!response.data) {
+          throw new Error("No transaction data returned");
+        }
+        return response.data;
+      },
+      invalidatesTags: ["Deliveries"],
+    }),
     // Customer endpoints
     getCustomers: builder.query<
       PaginatedCustomers,
@@ -272,6 +289,7 @@ export const {
   useCreateDeliveryMutation,
   useUpdateDeliveryMutation,
   useDeleteDeliveryMutation,
+  useInitiateMpesaPaymentMutation,
   useGetCustomersQuery,
   useGetPaymentsQuery,
   useGetBusinessDetailsQuery,
